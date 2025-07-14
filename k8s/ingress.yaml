@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k8svision-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    - host: k8svision.local
+      http:
+        paths:
+          - path: /api(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: k8svision-backend
+                port:
+                  number: 8080
+          - path: /(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: k8svision-frontend
+                port:
+                  number: 80 

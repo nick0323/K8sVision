@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8svision-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8svision-frontend
+  template:
+    metadata:
+      labels:
+        app: k8svision-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: k8svision-frontend:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: VITE_API_URL
+              value: "/api"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: "1"
+              memory: "256Mi"
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-healthcheck-frontend
+spec:
+  selector:
+    app: k8s-healthcheck-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80 

@@ -1,0 +1,659 @@
+basePath: /api
+definitions:
+  model.APIResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      page:
+        $ref: '#/definitions/model.PageMeta'
+      timestamp:
+        type: integer
+      traceId:
+        type: string
+    type: object
+  model.PageMeta:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: K8sVision 后端 API 文档
+  title: K8sVision API
+  version: "1.0"
+paths:
+  /cronjobs:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 CronJob 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 CronJob 详情
+      tags:
+      - CronJob
+      - CronJob
+  /cronjobs/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 CronJob 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: CronJob 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 CronJob 详情
+      tags:
+      - CronJob
+      - CronJob
+  /daemonsets:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 DaemonSet 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 DaemonSet 详情
+      tags:
+      - DaemonSet
+      - DaemonSet
+  /daemonsets/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 DaemonSet 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: DaemonSet 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 DaemonSet 详情
+      tags:
+      - DaemonSet
+      - DaemonSet
+  /deployments:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Deployment 详情
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Deployment 详情
+      tags:
+      - Deployment
+      - Deployment
+  /deployments/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Deployment 详情
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Deployment 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Deployment 详情
+      tags:
+      - Deployment
+      - Deployment
+  /events:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Event 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Event 详情
+      tags:
+      - Event
+      - Event
+  /events/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Event 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Event 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Event 详情
+      tags:
+      - Event
+      - Event
+  /ingress:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Ingress 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Ingress 详情
+      tags:
+      - Ingress
+      - Ingress
+  /ingress/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Ingress 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Ingress 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Ingress 详情
+      tags:
+      - Ingress
+      - Ingress
+  /jobs:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Job 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Job 详情
+      tags:
+      - Job
+      - Job
+  /jobs/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Job 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Job 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Job 详情
+      tags:
+      - Job
+      - Job
+  /namespaces:
+    get:
+      description: |-
+        获取所有命名空间
+        获取指定命名空间详情
+      parameters:
+      - description: 命名空间
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Namespace 详情
+      tags:
+      - Namespace
+      - Namespace
+  /namespaces/{name}:
+    get:
+      description: |-
+        获取所有命名空间
+        获取指定命名空间详情
+      parameters:
+      - description: 命名空间
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Namespace 详情
+      tags:
+      - Namespace
+      - Namespace
+  /nodes:
+    get:
+      description: |-
+        获取集群节点列表
+        获取指定节点详情
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Node 详情
+      tags:
+      - Node
+      - Node
+  /nodes/{name}:
+    get:
+      description: |-
+        获取集群节点列表
+        获取指定节点详情
+      parameters:
+      - description: Node 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Node 详情
+      tags:
+      - Node
+      - Node
+  /overview:
+    get:
+      description: 获取集群整体资源状态
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取集群资源总览
+      tags:
+      - Overview
+  /pods:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Pod 详情
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Pod 详情
+      tags:
+      - Pod
+      - Pod
+  /pods/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Pod 详情
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Pod 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Pod 详情
+      tags:
+      - Pod
+      - Pod
+  /services:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Service 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Service 详情
+      tags:
+      - Service
+      - Service
+  /services/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 Service 详情
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Service 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 Service 详情
+      tags:
+      - Service
+      - Service
+  /statefulsets:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 StatefulSet 详情
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 StatefulSet 详情
+      tags:
+      - StatefulSet
+      - StatefulSet
+  /statefulsets/{namespace}/{name}:
+    get:
+      description: |-
+        支持分页
+        获取指定命名空间下的 StatefulSet 详情
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: StatefulSet 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: 获取 StatefulSet 详情
+      tags:
+      - StatefulSet
+      - StatefulSet
+swagger: "2.0"

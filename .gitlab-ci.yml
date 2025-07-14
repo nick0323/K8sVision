@@ -1,0 +1,54 @@
+stages:
+  - build
+  - push
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+backend-build:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - cd backend
+    # 缓存 go mod 依赖
+    - docker run --rm -v $(pwd):/app -w /app golang:1.24-alpine sh -c 'go mod download'
+    # 构建镜像，产物名与 Dockerfile 保持一致
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME .
+  only:
+    - branches
+
+frontend-build:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - cd frontend
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME .
+  only:
+    - branches
+
+backend-push:
+  stage: push
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME
+  only:
+    - branches
+
+frontend-push:
+  stage: push
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME
+  only:
+    - branches 

@@ -1,0 +1,12 @@
+node_modules
+.git
+.gitlab-ci.yml
+*.log
+*.md
+README*
+Dockerfile
+.vscode
+.idea
+test/
+__tests__/
+coverage/ 
