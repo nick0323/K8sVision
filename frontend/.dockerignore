@@ -1,13 +1,12 @@
-node_modules
+# React frontend .dockerignore
+node_modules/
 .git
-.gitlab-ci.yml
 *.log
 *.md
-src/
-README*
+*.test
+.vscode/
+.idea/
+.DS_Store
 Dockerfile
-.vscode
-.idea
-test/
-__tests__/
+.env
 coverage/ 

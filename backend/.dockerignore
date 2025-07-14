@@ -1,12 +1,14 @@
-node_modules
+# Go backend .dockerignore
 .git
-.gitlab-ci.yml
-*.log
+frontend/
+docs/
 *.md
-README*
-Dockerfile
-.vscode
-.idea
-test/
-__tests__/
+*.log
+*.test
+*.out
+node_modules/
+.vscode/
+.idea/
+.DS_Store
+.env
 coverage/ 
