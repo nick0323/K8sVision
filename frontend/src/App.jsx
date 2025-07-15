@@ -3,6 +3,8 @@ import './App.css';
 import { FaServer, FaLayerGroup, FaDesktop, FaBell, FaCubes, FaTasks, FaChartPie, FaDatabase, FaShieldAlt, FaProjectDiagram, FaSync, FaNetworkWired, FaRegClock } from 'react-icons/fa';
 import { LuSquareDashed } from 'react-icons/lu';
 import { MENU_LIST, API_MAP } from './constants';
+import LoginPage from './LoginPage';
+import { FiLogOut } from 'react-icons/fi';
 
 // 懒加载页面组件
 const OverviewPage = lazy(() => import('./OverviewPage'));
@@ -47,7 +49,41 @@ const PAGE_COMPONENTS = {
   events: EventsPage,
 };
 
+function isLoggedIn() {
+  return !!localStorage.getItem('token');
+}
+
+function setAuthHeader(onLogout) {
+  const token = localStorage.getItem('token');
+  if (token) {
+    window.fetch = ((origFetch) => async (url, options = {}) => {
+      options.headers = options.headers || {};
+      options.headers['Authorization'] = 'Bearer ' + token;
+      const res = await origFetch(url, options);
+      if (res.status === 401 && onLogout) {
+        onLogout();
+        return res;
+      }
+      return res;
+    })(window.fetch);
+  }
+}
+
 export default function App() {
+  const [login, setLogin] = React.useState(isLoggedIn());
+  React.useEffect(() => { setAuthHeader(() => {
+    localStorage.removeItem('token');
+    setLogin(false);
+  }); }, [login]);
+  if (!login) {
+    return <LoginPage onLogin={() => setLogin(true)} />;
+  }
+  // 退出登录按钮
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setLogin(false);
+    window.location.reload(); // 退出登录后强制刷新页面
+  };
   const [tab, setTab] = useState('overview');
 
   const CurrentPage = PAGE_COMPONENTS[tab];
@@ -67,6 +103,10 @@ export default function App() {
             </li>
           ))}
         </ul>
+        <button className="logout-btn" onClick={handleLogout}>
+          <span className="icon"><FiLogOut /></span>
+          <span>Sign out</span>
+        </button>
       </div>
       <div className="main-content">
         <Suspense fallback={<div style={{textAlign:'center',color:'#888',padding:'32px 0'}}>加载中...</div>}>

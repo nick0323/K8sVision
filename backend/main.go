@@ -44,12 +44,14 @@ func main() {
 		c.Set("traceId", traceId)
 		c.Next()
 	})
+	r.POST("/api/login", api.LoginHandler)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	port := viper.GetString("server.port")
 	if port == "" {
 		port = "8080"
 	}
 	apiGroup := r.Group("/api")
+	apiGroup.Use(api.JWTAuthMiddleware())
 	api.RegisterOverview(apiGroup, logger, func(namespace string, limit, offset int) (*model.OverviewStatus, string, error) {
 		clientset, _, err := service.GetK8sClient()
 		if err != nil {

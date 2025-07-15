@@ -5,9 +5,14 @@ import (
 
 	"github.com/nick0323/K8sVision/backend/model"
 
+	"strings"
+
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 )
+
+var jwtSecret = []byte("k8svision-secret-key")
 
 // GetTraceID 从 gin.Context 获取 traceId
 func GetTraceID(c *gin.Context) string {
@@ -61,4 +66,24 @@ func Paginate[T any](list []T, offset, limit int) []T {
 		end = len(list)
 	}
 	return list[offset:end]
+}
+
+// JWTAuthMiddleware Gin中间件
+func JWTAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenStr := c.GetHeader("Authorization")
+		if tokenStr == "" || !strings.HasPrefix(tokenStr, "Bearer ") {
+			c.AbortWithStatusJSON(401, gin.H{"msg": "未认证"})
+			return
+		}
+		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+			return jwtSecret, nil
+		})
+		if err != nil || !token.Valid {
+			c.AbortWithStatusJSON(401, gin.H{"msg": "token无效或已过期"})
+			return
+		}
+		c.Next()
+	}
 }

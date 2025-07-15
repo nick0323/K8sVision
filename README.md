@@ -78,11 +78,15 @@ kubectl apply -f k8s/
 
 ### 后端（backend）
 
-| 变量名         | 说明                   | 默认值         |
-| -------------- | ---------------------- | -------------- |
-| SERVER_PORT    | 服务监听端口           | 8080           |
-| CONFIG_PATH    | 配置文件路径           | /app/config.yaml |
+| 变量名           | 说明                   | 默认值         |
+| ---------------- | ---------------------- | -------------- |
+| SERVER_PORT      | 服务监听端口           | 8080           |
+| CONFIG_PATH      | 配置文件路径           | /app/config.yaml |
+| LOGIN_USERNAME   | 登录用户名             | admin          |
+| LOGIN_PASSWORD   | 登录密码               | 123456         |
 
+- 登录接口会校验 LOGIN_USERNAME 和 LOGIN_PASSWORD，未设置时登录会失败。
+- 推荐通过环境变量安全注入账号密码，避免硬编码。
 - 也可通过 `config.yaml` 配置 K8s 连接、日志等参数
 
 ### 前端（frontend）

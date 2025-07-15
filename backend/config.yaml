@@ -3,4 +3,4 @@ server:
   logLevel: info
 
 kubernetes:
-  kubeconfig: "C:/Users/user/Downloads/finq-qa.yaml" 
+  kubeconfig: "" 

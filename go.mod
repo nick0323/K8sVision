@@ -4,6 +4,7 @@ go 1.24.4
 
 require (
 	github.com/gin-gonic/gin v1.10.1
+	github.com/golang-jwt/jwt/v4 v4.3.0
 	github.com/google/uuid v1.6.0
 	github.com/spf13/viper v1.20.1
 	github.com/swaggo/files v0.0.0-20190704085106-630677cd5c14

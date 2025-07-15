@@ -37,6 +37,8 @@
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
   /* 隐藏滚动条，仅在需要时滚动 */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
@@ -52,6 +54,7 @@
   font-size: 15px;
   font-weight: 600;
   color: #222;
+  flex: 1 1 auto;
 }
 .sider-menu li {
   display: flex;
@@ -1020,4 +1023,36 @@ html, body, #root, .main-content, .table-content-area, .sider-menu {
 }
 html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .main-content::-webkit-scrollbar, .table-content-area::-webkit-scrollbar, .sider-menu::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 12px 24px;
+  margin: 24px 0 0 0;
+  background: none;
+  color: #333;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-family: 'Inter', 'Consolas', 'Menlo', 'monospace', 'Arial', sans-serif;
+  line-height: 1.2;
+  outline: none;
+  box-shadow: none;
+}
+.logout-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+.logout-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.logout-btn .icon {
+  margin-right: 10px;
+  font-size: 18px;
+  vertical-align: middle;
 }
