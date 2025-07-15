@@ -48,17 +48,21 @@ export default function CronJobsPage() {
           { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
           { title: 'Schedule', dataIndex: 'schedule', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
           { title: 'Suspend', dataIndex: 'suspend', render: (val, row, i, isTooltip) => {
-              const text = val ? 'Yes' : 'No';
-              return isTooltip ? text : <span title={text}>{text}</span>;
-            }
-          },
+  const text = val === true || val === 'true' ? 'true' : 'false';
+  const color = text === 'true' ? 'event-type-warning' : 'event-type-normal';
+  return isTooltip ? text : <span className={`status-tag ${color}`} title={text}>{text}</span>;
+}},
           { title: 'Active', dataIndex: 'active', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
           { title: 'Last Schedule', dataIndex: 'lastScheduleTime', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) =>
-              isTooltip
-                ? val
-                : <span className={`status-tag ${val === 'Active' ? 'event-type-normal' : 'event-type-warning'}`} title={val}>{val}</span>
-          },
+          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
+  let tagClass = 'event-type-warning';
+  if (val === 'Active' || val === 'Succeeded') tagClass = 'event-type-normal';
+  else if (val === 'Failed' || val === 'Suspended') tagClass = 'event-type-warning';
+  else if (val === 'Pending' || val === 'Unknown') tagClass = 'event-type-warning';
+  return isTooltip
+    ? val
+    : <span className={`status-tag ${tagClass}`} title={val}>{val}</span>;
+}},
         ]}
         data={filteredRows}
         pageSize={pageSize}
