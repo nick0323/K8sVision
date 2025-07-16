@@ -87,8 +87,9 @@ func Paginate[T any](list []T, offset, limit int) []T {
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := c.GetHeader("Authorization")
+		traceId := GetTraceID(c)
 		if tokenStr == "" || !strings.HasPrefix(tokenStr, "Bearer ") {
-			c.AbortWithStatusJSON(401, gin.H{"msg": "未认证"})
+			c.AbortWithStatusJSON(401, gin.H{"message": "Unauthorized", "traceId": traceId})
 			return
 		}
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
@@ -96,7 +97,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			return jwtSecret, nil
 		})
 		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(401, gin.H{"msg": "token无效或已过期"})
+			c.AbortWithStatusJSON(401, gin.H{"message": "Token is invalid or expired", "traceId": traceId})
 			return
 		}
 		c.Next()
