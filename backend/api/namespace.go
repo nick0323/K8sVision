@@ -18,12 +18,14 @@ import (
 // @Summary 获取 Namespace 列表
 // @Description 获取所有命名空间
 // @Tags Namespace
+// @Security BearerAuth
 // @Success 200 {object} model.APIResponse
 // @Router /namespaces [get]
 //
 // @Summary 获取 Namespace 详情
 // @Description 获取指定命名空间详情
 // @Tags Namespace
+// @Security BearerAuth
 // @Param name path string true "命名空间"
 // @Success 200 {object} model.APIResponse
 // @Router /namespaces/{name} [get]

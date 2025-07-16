@@ -14,6 +14,7 @@ import (
 // @Summary 获取集群资源总览
 // @Description 获取集群整体资源状态
 // @Tags Overview
+// @Security BearerAuth
 // @Param namespace query string false "命名空间"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"

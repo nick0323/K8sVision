@@ -3,6 +3,9 @@
 // @description K8sVision 后端 API 文档
 // @host localhost:8080
 // @BasePath /api
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 package main
 
 import (
@@ -19,6 +22,8 @@ import (
 	"go.uber.org/zap"
 
 	// 注册 swagger 文档
+	"os"
+
 	_ "github.com/nick0323/K8sVision/backend/docs"
 )
 
@@ -36,8 +41,10 @@ func initConfig() {
 // main 入口，负责依赖注入和路由注册
 func main() {
 	initConfig()
+	api.InitJWTSecret()
 	logger, _ = zap.NewProduction()
 	defer logger.Sync()
+
 	r := gin.Default()
 	r.Use(func(c *gin.Context) {
 		traceId := uuid.New().String()
@@ -45,7 +52,15 @@ func main() {
 		c.Next()
 	})
 	r.POST("/api/login", api.LoginHandler)
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// 通过环境变量控制 swagger 路由注册
+	if os.Getenv("SWAGGER_ENABLE") == "true" {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
+
+	r.GET("/healthz", func(c *gin.Context) {
+		c.String(200, "ok")
+	})
 	port := viper.GetString("server.port")
 	if port == "" {
 		port = "8080"

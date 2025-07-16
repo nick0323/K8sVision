@@ -177,3 +177,13 @@ type PodDetail struct {
 	Annotations map[string]string `json:"annotations"`
 	Containers  []string          `json:"containers"`
 }
+
+// LoginRequest 登录参数
+// @Description 登录参数
+// @name LoginRequest
+// @Param username body string true "用户名"
+// @Param password body string true "密码"
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}

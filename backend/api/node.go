@@ -23,12 +23,14 @@ import (
 // @Summary 获取 Node 列表
 // @Description 获取集群节点列表
 // @Tags Node
+// @Security BearerAuth
 // @Success 200 {object} model.APIResponse
 // @Router /nodes [get]
 //
 // @Summary 获取 Node 详情
 // @Description 获取指定节点详情
 // @Tags Node
+// @Security BearerAuth
 // @Param name path string true "Node 名称"
 // @Success 200 {object} model.APIResponse
 // @Router /nodes/{name} [get]

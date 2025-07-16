@@ -18,6 +18,7 @@ import (
 // @Summary 获取 Job 列表
 // @Description 支持分页
 // @Tags Job
+// @Security BearerAuth
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
 // @Success 200 {object} model.APIResponse
@@ -26,6 +27,7 @@ import (
 // @Summary 获取 Job 详情
 // @Description 获取指定命名空间下的 Job 详情
 // @Tags Job
+// @Security BearerAuth
 // @Param namespace path string true "命名空间"
 // @Param name path string true "Job 名称"
 // @Success 200 {object} model.APIResponse

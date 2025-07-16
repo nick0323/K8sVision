@@ -17,6 +17,14 @@ const docTemplate = `{
     "paths": {
         "/cronjobs": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 CronJob 详情",
                 "tags": [
                     "CronJob",
@@ -49,6 +57,14 @@ const docTemplate = `{
         },
         "/cronjobs/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 CronJob 详情",
                 "tags": [
                     "CronJob",
@@ -95,6 +111,14 @@ const docTemplate = `{
         },
         "/daemonsets": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 DaemonSet 详情",
                 "tags": [
                     "DaemonSet",
@@ -127,6 +151,14 @@ const docTemplate = `{
         },
         "/daemonsets/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 DaemonSet 详情",
                 "tags": [
                     "DaemonSet",
@@ -173,6 +205,14 @@ const docTemplate = `{
         },
         "/deployments": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Deployment 详情",
                 "tags": [
                     "Deployment",
@@ -211,6 +251,14 @@ const docTemplate = `{
         },
         "/deployments/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Deployment 详情",
                 "tags": [
                     "Deployment",
@@ -263,6 +311,14 @@ const docTemplate = `{
         },
         "/events": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Event 详情",
                 "tags": [
                     "Event",
@@ -295,6 +351,14 @@ const docTemplate = `{
         },
         "/events/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Event 详情",
                 "tags": [
                     "Event",
@@ -341,6 +405,14 @@ const docTemplate = `{
         },
         "/ingress": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Ingress 详情",
                 "tags": [
                     "Ingress",
@@ -373,6 +445,14 @@ const docTemplate = `{
         },
         "/ingress/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Ingress 详情",
                 "tags": [
                     "Ingress",
@@ -419,6 +499,14 @@ const docTemplate = `{
         },
         "/jobs": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Job 详情",
                 "tags": [
                     "Job",
@@ -451,6 +539,14 @@ const docTemplate = `{
         },
         "/jobs/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Job 详情",
                 "tags": [
                     "Job",
@@ -495,8 +591,80 @@ const docTemplate = `{
                 }
             }
         },
+        "/login": {
+            "post": {
+                "description": "登录获取 JWT Token，连续失败5次10分钟内禁止尝试",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "用户登录",
+                "parameters": [
+                    {
+                        "description": "登录参数",
+                        "name": "login",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{token: JWT}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "用户名或密码错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "登录失败次数过多",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/namespaces": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取所有命名空间\n获取指定命名空间详情",
                 "tags": [
                     "Namespace",
@@ -524,6 +692,14 @@ const docTemplate = `{
         },
         "/namespaces/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取所有命名空间\n获取指定命名空间详情",
                 "tags": [
                     "Namespace",
@@ -551,6 +727,14 @@ const docTemplate = `{
         },
         "/nodes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取集群节点列表\n获取指定节点详情",
                 "tags": [
                     "Node",
@@ -569,6 +753,14 @@ const docTemplate = `{
         },
         "/nodes/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取集群节点列表\n获取指定节点详情",
                 "tags": [
                     "Node",
@@ -596,6 +788,11 @@ const docTemplate = `{
         },
         "/overview": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "获取集群整体资源状态",
                 "tags": [
                     "Overview"
@@ -633,6 +830,14 @@ const docTemplate = `{
         },
         "/pods": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Pod 详情",
                 "tags": [
                     "Pod",
@@ -671,6 +876,14 @@ const docTemplate = `{
         },
         "/pods/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Pod 详情",
                 "tags": [
                     "Pod",
@@ -723,6 +936,14 @@ const docTemplate = `{
         },
         "/services": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Service 详情",
                 "tags": [
                     "Service",
@@ -755,6 +976,14 @@ const docTemplate = `{
         },
         "/services/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 Service 详情",
                 "tags": [
                     "Service",
@@ -801,6 +1030,14 @@ const docTemplate = `{
         },
         "/statefulsets": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 StatefulSet 详情",
                 "tags": [
                     "StatefulSet",
@@ -839,6 +1076,14 @@ const docTemplate = `{
         },
         "/statefulsets/{namespace}/{name}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "支持分页\n获取指定命名空间下的 StatefulSet 详情",
                 "tags": [
                     "StatefulSet",
@@ -912,6 +1157,18 @@ const docTemplate = `{
                 }
             }
         },
+        "model.LoginRequest": {
+            "description": "登录参数",
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "model.PageMeta": {
             "type": "object",
             "properties": {
@@ -925,6 +1182,13 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

@@ -28,7 +28,12 @@ export default function LoginPage({ onLogin }) {
       if (onLogin) onLogin();
       window.location.reload();
     } else {
-      setError('Invalid username or password');
+      let errMsg = 'Invalid username or password';
+      try {
+        const err = await res.json();
+        if (err && err.message) errMsg = err.message;
+      } catch (e) {}
+      setError(errMsg);
     }
   };
 

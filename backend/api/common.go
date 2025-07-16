@@ -7,12 +7,27 @@ import (
 
 	"strings"
 
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
-var jwtSecret = []byte("k8svision-secret-key")
+var jwtSecret []byte
+
+// InitJWTSecret 初始化 JWT 密钥，优先环境变量，其次 viper 配置，最后默认
+func InitJWTSecret() {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = viper.GetString("jwt.secret")
+	}
+	if secret == "" {
+		secret = "k8svision-secret-key"
+	}
+	jwtSecret = []byte(secret)
+}
 
 // GetTraceID 从 gin.Context 获取 traceId
 func GetTraceID(c *gin.Context) string {

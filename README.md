@@ -159,3 +159,48 @@ go run main.go
 ## License
 
 MIT
+
+## API 文档与接口说明
+
+- Swagger 文档地址：http://localhost:8080/swagger/index.html
+- 健康检查接口：
+  - 路径：`/healthz`
+  - 方法：GET
+  - 返回：200 OK，内容为 `ok`
+- 登录接口防爆破：
+  - 连续登录失败5次，10分钟内禁止再次尝试。
+  - 超过限制返回 429 状态码。
+
+## 配置与部署说明
+
+### 后端环境变量
+
+| 变量名         | 说明                         | 默认值                |
+| -------------- | ---------------------------- | --------------------- |
+| SERVER_PORT    | 服务监听端口                 | 8080                  |
+| LOGIN_USERNAME | 登录用户名                   | admin                 |
+| LOGIN_PASSWORD | 登录密码                     | 123456                |
+| JWT_SECRET     | JWT 签发密钥                 | k8svision-secret-key  |
+| KUBECONFIG     | kubeconfig 路径（多集群时建议用 config.yaml 配置） | "" |
+
+- 推荐通过环境变量安全注入账号密码和密钥，避免硬编码。
+- JWT_SECRET 支持通过环境变量或 config.yaml 的 jwt.secret 字段配置。
+- KUBECONFIG 支持通过环境变量或 config.yaml 的 kubernetes.kubeconfig 字段配置。
+
+### 多集群配置（进阶）
+
+- 支持在 config.yaml 中配置多个集群：
+
+```yaml
+clusters:
+  - name: dev
+    kubeconfig: /kubeconfigs/dev.kubeconfig
+  - name: prod
+    kubeconfig: /kubeconfigs/prod.kubeconfig
+```
+
+- 前端请求需带 cluster 参数，后端动态选择集群。
+
+### Docker 部署
+
+- 推荐使用 docker-compose 或 K8s 部署，环境变量可在 compose 文件或 K8s YAML 中配置。
