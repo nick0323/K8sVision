@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/nick0323/K8sVision/backend/model"
+	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -14,28 +14,31 @@ import (
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
-// RegisterNamespace 注册 Namespace 相关路由，包括列表和详情接口
-// @Summary 获取 Namespace 列表
-// @Description 获取所有命名空间
-// @Tags Namespace
+// RegisterCronJob 注册 CronJob 相关路由，包括列表和详情接口
+// @Summary 获取 CronJob 列表
+// @Description 支持分页
+// @Tags CronJob
 // @Security BearerAuth
+// @Param limit query int false "每页数量"
+// @Param offset query int false "偏移量"
 // @Success 200 {object} model.APIResponse
-// @Router /namespaces [get]
+// @Router /cronjobs [get]
 //
-// @Summary 获取 Namespace 详情
-// @Description 获取指定命名空间详情
-// @Tags Namespace
+// @Summary 获取 CronJob 详情
+// @Description 获取指定命名空间下的 CronJob 详情
+// @Tags CronJob
 // @Security BearerAuth
-// @Param name path string true "命名空间"
+// @Param namespace path string true "命名空间"
+// @Param name path string true "CronJob 名称"
 // @Success 200 {object} model.APIResponse
-// @Router /namespaces/{name} [get]
-func RegisterNamespace(
+// @Router /cronjobs/{namespace}/{name} [get]
+func RegisterCronJob(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
 	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
-	listNamespaces func(context.Context, *kubernetes.Clientset) ([]string, error),
+	listCronJobs func(context.Context, *kubernetes.Clientset) ([]model.CronJobStatus, error),
 ) {
-	r.GET("/namespaces", func(c *gin.Context) {
+	r.GET("/cronjobs", func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusInternalServerError)
@@ -44,34 +47,33 @@ func RegisterNamespace(
 		ctx := context.Background()
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-		namespaces, err := listNamespaces(ctx, clientset)
+		cronjobs, err := listCronJobs(ctx, clientset)
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		total := len(namespaces)
-		paged := Paginate(namespaces, offset, limit)
+		paged := Paginate(cronjobs, offset, limit)
 		ResponseOK(c, paged, "success", &model.PageMeta{
-			Total:  total,
+			Total:  len(cronjobs),
 			Limit:  limit,
 			Offset: offset,
 		})
 	})
 
-	r.GET("/namespaces/:name", func(c *gin.Context) {
+	r.GET("/cronjobs/:namespace/:name", func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
 		ctx := context.Background()
+		ns := c.Param("namespace")
 		name := c.Param("name")
-		// 这里只做简单查找
-		ns, err := clientset.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+		cronjob, err := clientset.BatchV1().CronJobs(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
-		ResponseOK(c, ns, "success", nil)
+		ResponseOK(c, cronjob, "success", nil)
 	})
 }

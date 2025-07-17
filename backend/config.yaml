@@ -1,9 +1,0 @@
-server:
-  port: 8080
-  logLevel: info
-
-kubernetes:
-  kubeconfig: ""
-
-jwt:
-  secret: "" 

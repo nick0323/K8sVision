@@ -5,65 +5,62 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/nick0323/K8sVision/backend/model"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
+	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
-// RegisterStatefulSet 注册 StatefulSet 相关路由，包括列表和详情接口
-// @Summary 获取 StatefulSet 列表
+// RegisterEvent 注册 Event 相关路由，包括列表和详情接口
+// @Summary 获取 Event 列表
 // @Description 支持分页
-// @Tags StatefulSet
+// @Tags Event
 // @Security BearerAuth
-// @Param namespace query string false "命名空间"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
 // @Success 200 {object} model.APIResponse
-// @Router /statefulsets [get]
+// @Router /events [get]
 //
-// @Summary 获取 StatefulSet 详情
-// @Description 获取指定命名空间下的 StatefulSet 详情
-// @Tags StatefulSet
+// @Summary 获取 Event 详情
+// @Description 获取指定命名空间下的 Event 详情
+// @Tags Event
 // @Security BearerAuth
 // @Param namespace path string true "命名空间"
-// @Param name path string true "StatefulSet 名称"
+// @Param name path string true "Event 名称"
 // @Success 200 {object} model.APIResponse
-// @Router /statefulsets/{namespace}/{name} [get]
-func RegisterStatefulSet(
+// @Router /events/{namespace}/{name} [get]
+func RegisterEvent(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
-	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
-	listStatefulSets func(context.Context, *kubernetes.Clientset, string) ([]model.StatefulSetStatus, error),
+	getK8sClient func() (*kubernetes.Clientset, *metrics.Clientset, error),
+	listEvents func(context.Context, *kubernetes.Clientset) ([]model.EventStatus, error),
 ) {
-	r.GET("/statefulsets", func(c *gin.Context) {
+	r.GET("/events", func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
 		ctx := context.Background()
-		namespace := c.DefaultQuery("namespace", "")
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-		sets, err := listStatefulSets(ctx, clientset, namespace)
+		events, err := listEvents(ctx, clientset)
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		paged := Paginate(sets, offset, limit)
+		paged := Paginate(events, offset, limit)
 		ResponseOK(c, paged, "success", &model.PageMeta{
-			Total:  len(sets),
+			Total:  len(events),
 			Limit:  limit,
 			Offset: offset,
 		})
 	})
 
-	r.GET("/statefulsets/:namespace/:name", func(c *gin.Context) {
+	r.GET("/events/:namespace/:name", func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusInternalServerError)
@@ -72,11 +69,11 @@ func RegisterStatefulSet(
 		ctx := context.Background()
 		ns := c.Param("namespace")
 		name := c.Param("name")
-		sts, err := clientset.AppsV1().StatefulSets(ns).Get(ctx, name, v1.GetOptions{})
+		evt, err := clientset.CoreV1().Events(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
-		ResponseOK(c, sts, "success", nil)
+		ResponseOK(c, evt, "success", nil)
 	})
 }

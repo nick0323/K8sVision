@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/nick0323/K8sVision/backend/model"
+	"github.com/nick0323/K8sVision/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/nick0323/K8sVision/backend/model"
+	"github.com/nick0323/K8sVision/model"
 )
 
 var loginFailMap = make(map[string]struct {

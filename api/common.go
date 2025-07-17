@@ -3,7 +3,7 @@ package api
 import (
 	"time"
 
-	"github.com/nick0323/K8sVision/backend/model"
+	"github.com/nick0323/K8sVision/model"
 
 	"strings"
 

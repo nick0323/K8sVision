@@ -3,4 +3,7 @@ server:
   logLevel: info
 
 kubernetes:
-  kubeconfig: "" 
+  kubeconfig: ""
+
+jwt:
+  secret: "" 

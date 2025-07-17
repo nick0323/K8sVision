@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/nick0323/K8sVision/backend/model"
+	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

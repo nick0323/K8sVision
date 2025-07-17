@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/nick0323/K8sVision/backend/model"
-	"github.com/nick0323/K8sVision/backend/service"
+	"github.com/nick0323/K8sVision/model"
+	"github.com/nick0323/K8sVision/service"
 
 	"math"
 	"strconv"

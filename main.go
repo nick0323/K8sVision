@@ -9,10 +9,10 @@
 package main
 
 import (
-	"github.com/nick0323/K8sVision/backend/api"
-	"github.com/nick0323/K8sVision/backend/service"
+	"github.com/nick0323/K8sVision/api"
+	"github.com/nick0323/K8sVision/service"
 
-	"github.com/nick0323/K8sVision/backend/model"
+	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -24,7 +24,7 @@ import (
 	// 注册 swagger 文档
 	"os"
 
-	_ "github.com/nick0323/K8sVision/backend/docs"
+	_ "github.com/nick0323/K8sVision/docs"
 )
 
 var logger *zap.Logger
