@@ -1,27 +1,29 @@
 version: '3.8'
 services:
   backend:
-    build:
-      context: ./backend
-    image: k8svision-backend:latest
-    container_name: k8svision-backend
+    image: ghcr.io/nick0323/vision-backend:latest
+    container_name: vision-backend
     environment:
       - TZ=Asia/Shanghai
+      - KUBECONFIG=/app/config.yaml
+      - LOGIN_USERNAME=admin
+      - LOGIN_PASSWORD=12345678
+      - GIN_MODE=release
+      - LOGIN_MAX_FAIL=3
+      - LOGIN_LOCK_MINUTES=5
     volumes:
-      - ./backend/config.yaml:/app/config.yaml:ro
+      - ~/.kube/config:/app/config.yaml:ro
     ports:
       - "8080:8080"
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ./frontend
-    image: k8svision-frontend:latest
-    container_name: k8svision-frontend
+    image: ghcr.io/nick0323/vision-frontend:latest
+    container_name: vision-frontend
     environment:
       - TZ=Asia/Shanghai
     ports:
       - "80:80"
     depends_on:
       - backend
-    restart: unless-stopped 
+    restart: unless-stopped
