@@ -1,7 +1,7 @@
 # Go backend .dockerignore
 .git
 frontend/
-docs/
+#docs/
 *.md
 *.log
 *.test
