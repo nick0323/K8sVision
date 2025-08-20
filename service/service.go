@@ -11,8 +11,8 @@ import (
 )
 
 // ListServices 采集 Service 信息，返回 ServiceStatus 列表
-func ListServices(ctx context.Context, clientset *kubernetes.Clientset) ([]model.ServiceStatus, error) {
-	svcs, err := clientset.CoreV1().Services("").List(ctx, metav1.ListOptions{})
+func ListServices(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.ServiceStatus, error) {
+	svcs, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

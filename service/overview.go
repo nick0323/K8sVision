@@ -66,8 +66,8 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 		nodesRaw *corev1.NodeList
 		nodesErr error
 
-		namespaces []string
-		nsErr      error
+		nsList []model.NamespaceDetail
+		nsErr  error
 
 		services    []model.ServiceStatus
 		servicesErr error
@@ -91,13 +91,13 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 	// 并发采集 Namespace
 	go func() {
 		defer wg.Done()
-		namespaces, nsErr = ListNamespaces(ctx, clientset)
+		nsList, nsErr = ListNamespaces(ctx, clientset)
 	}()
 
 	// 并发采集 Service
 	go func() {
 		defer wg.Done()
-		services, servicesErr = ListServices(ctx, clientset)
+		services, servicesErr = ListServices(ctx, clientset, "")
 	}()
 
 	wg.Wait()
@@ -135,7 +135,7 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 
 	// Namespace统计
 	if nsErr == nil {
-		overview.NamespaceCount = len(namespaces)
+		overview.NamespaceCount = len(nsList)
 	}
 
 	// Service统计

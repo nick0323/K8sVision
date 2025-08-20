@@ -3,6 +3,7 @@ import CommonTable from './CommonTable';
 import { FaSync } from 'react-icons/fa';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import ResourceDetailModal from './components/ResourceDetailModal';
 import { SEARCH_PLACEHOLDER, PAGE_SIZE } from './constants';
 import { useFilterRows } from './utils';
 import Pagination from './Pagination';
@@ -12,35 +13,39 @@ export default function NodesPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const pageSize = PAGE_SIZE;
+  const [pageMeta, setPageMeta] = useState({});
 
-  const fetchData = useCallback((page, pageSize) => {
+  // 详情模态框状态
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [currentResource, setCurrentResource] = useState(null);
+
+  const fetchData = useCallback(() => {
     setLoading(true);
     fetch(`/api/nodes?limit=${pageSize}&offset=${(page-1)*pageSize}`)
       .then(res => res.json())
       .then(res => {
-        setData(Array.isArray(res.data) ? res.data : []);
-        setTotal(res.page?.total || 0);
+        setData(res.data || res);
+        setPageMeta(res.page || {});
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, pageSize]);
 
   useEffect(() => {
-    fetchData(page, pageSize);
-  }, [fetchData, page, pageSize]);
+    fetchData();
+  }, [fetchData]);
 
-  // 工具函数：单位转换
-  function formatPercent(val) {
-    if (val === null || val === undefined || isNaN(val)) return '-';
-    return Number(val).toFixed(1) + '%';
-  }
-  function formatRole(roleArr) {
-    if (!Array.isArray(roleArr) || roleArr.length === 0) return '-';
-    return roleArr.join(', ');
-  }
+  const filteredRows = useFilterRows(data, ['name', 'status'], search);
 
-  const filteredRows = useFilterRows(data, ['name', 'ip', 'status', 'role'], search);
+  // 处理资源点击
+  const handleResourceClick = (resource) => {
+    setCurrentResource({
+      type: 'nodes',
+      namespace: null, // 节点是集群级别的资源
+      name: resource.name
+    });
+    setDetailModalVisible(true);
+  };
 
   return (
     <div>
@@ -50,57 +55,91 @@ export default function NodesPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <RefreshButton onClick={() => fetchData(page, pageSize)} />
+        <RefreshButton onClick={fetchData} />
       </div>
       <CommonTable
         columns={[
-          { title: 'Name', dataIndex: 'name', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'IP', dataIndex: 'ip', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
+          { 
+            title: 'Name', 
+            dataIndex: 'name', 
+            render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              return (
+                <span 
+                  className="resource-name-link" 
+                  onClick={() => handleResourceClick(row)}
+                >
+                  {val}
+                </span>
+              );
+            }
+          },
+          { title: 'IP', dataIndex: 'ip', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Role', dataIndex: 'role', render: (val, row, i, isTooltip) => {
-              // 统一排序，优先 controlplane > etcd > worker
-              const order = ['controlplane', 'etcd', 'worker'];
-              let arr = Array.isArray(row.role) ? [...row.role] : (row.role ? [row.role] : []);
-              arr = arr.sort((a, b) => {
-                const ia = order.indexOf(a);
-                const ib = order.indexOf(b);
-                if (ia === -1 && ib === -1) return a.localeCompare(b);
-                if (ia === -1) return 1;
-                if (ib === -1) return -1;
-                return ia - ib;
-              });
-              const text = arr.join(', ') || '-';
-              return isTooltip ? text : <span title={text}>{text}</span>;
+              if (isTooltip) return Array.isArray(val) ? val.join(', ') : (val || 'worker');
+              const text = Array.isArray(val) ? val.join(', ') : (val || 'worker');
+              return <span>{text}</span>;
             }
           },
-          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => isTooltip ? val : <span className={`status-tag ${(val === 'Ready' || val === 'Running' || val === 'Healthy' || val === 'Normal' || val === 'Active') ? 'event-type-normal' : 'event-type-warning'}`} title={val}>{val}</span> },
-          { title: 'CPU Usage', dataIndex: 'cpuUsage', render: (val, row, i, isTooltip) => {
-              const text = row.cpuUsage !== undefined && row.cpuUsage !== null ? Number(row.cpuUsage).toFixed(1) + '%' : '-';
-              return isTooltip ? text : <span title={text}>{text}</span>;
+          { title: 'CPUUsage', dataIndex: 'cpuUsage', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              const roundedVal = typeof val === 'number' ? val.toFixed(2) : val;
+              return <span>{roundedVal}%</span>;
             }
           },
-          { title: 'Memory Usage', dataIndex: 'memoryUsage', render: (val, row, i, isTooltip) => {
-              const text = row.memoryUsage !== undefined && row.memoryUsage !== null ? Number(row.memoryUsage).toFixed(1) + '%' : '-';
-              return isTooltip ? text : <span title={text}>{text}</span>;
+          { title: 'MemoryUsage', dataIndex: 'memoryUsage', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              const roundedVal = typeof val === 'number' ? val.toFixed(2) : val;
+              return <span>{roundedVal}%</span>;
             }
           },
           { title: 'Pods', dataIndex: 'podsUsed', render: (val, row, i, isTooltip) => {
-              const text = `${row.podsUsed ?? '-'} / ${row.podsCapacity ?? '-'}`;
-              return isTooltip ? text : <span title={text}>{text}</span>;
+              if (isTooltip) return val;
+              const podsText = `${val || 0}`;
+              return <span>{podsText}</span>;
+            }
+          },
+          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              
+              const isHealthy = val === 'Running' || val === 'Succeeded' || val === 'Ready' || val === 'Healthy' || val === 'Normal' || val === 'Active' || val === 'Bound';
+              const isFailed = val === 'Failed' || val === 'Error' || val === 'CrashLoopBackOff';
+              const isPending = val === 'Pending' || val === 'ContainerCreating' || val === 'PodInitializing';
+              
+              let statusClass = 'status-running';
+              if (isHealthy) {
+                statusClass = 'status-ready';
+              } else if (isFailed) {
+                statusClass = 'status-failed';
+              } else if (isPending) {
+                statusClass = 'status-pending';
+              }
+              
+              return <span className={`status-tag ${statusClass}`}>{val}</span>;
             }
           },
         ]}
         data={filteredRows}
         pageSize={pageSize}
         currentPage={page}
-        total={total || filteredRows.length}
         onPageChange={setPage}
+        total={pageMeta?.total || filteredRows.length}
         emptyText="No data"
       />
       <Pagination
         currentPage={page}
-        total={total || filteredRows.length}
+        total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+      />
+
+      {/* 资源详情模态框 */}
+      <ResourceDetailModal
+        visible={detailModalVisible}
+        resourceType={currentResource?.type}
+        namespace={currentResource?.namespace}
+        name={currentResource?.name}
+        onClose={() => setDetailModalVisible(false)}
       />
     </div>
   );

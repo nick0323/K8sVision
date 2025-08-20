@@ -9,30 +9,33 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListJobs 采集指定 context 下的 Job 信息，返回 JobStatus 列表
-func ListJobs(ctx context.Context, clientset *kubernetes.Clientset) ([]model.JobStatus, error) {
-	jobs, err := clientset.BatchV1().Jobs("").List(ctx, metav1.ListOptions{})
+// ListJobs 采集 Job 信息，支持命名空间过滤
+func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.JobStatus, error) {
+	jobs, err := clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	result := make([]model.JobStatus, 0, len(jobs.Items))
-	for _, j := range jobs.Items {
-		status := "Unknown"
-		if j.Status.Succeeded > 0 {
-			status = "Succeeded"
-		} else if j.Status.Failed > 0 {
-			status = "Failed"
-		} else if j.Status.Active > 0 {
-			status = "Active"
+	for _, job := range jobs.Items {
+		status := GetJobStatus(job.Status.Succeeded, job.Status.Failed, job.Status.Active)
+		
+		// 处理时间字段
+		startTime := ""
+		if job.Status.StartTime != nil {
+			startTime = job.Status.StartTime.Format("2006-01-02 15:04:05")
 		}
-		startTime := model.FormatTime(j.Status.StartTime)
-		completionTime := model.FormatTime(j.Status.CompletionTime)
+		
+		completionTime := ""
+		if job.Status.CompletionTime != nil {
+			completionTime = job.Status.CompletionTime.Format("2006-01-02 15:04:05")
+		}
+		
 		result = append(result, model.JobStatus{
-			Namespace:      j.Namespace,
-			Name:           j.Name,
-			Completions:    *j.Spec.Completions,
-			Succeeded:      j.Status.Succeeded,
-			Failed:         j.Status.Failed,
+			Namespace:      job.Namespace,
+			Name:           job.Name,
+			Completions:    SafeInt32Ptr(job.Spec.Completions, 0),
+			Succeeded:      job.Status.Succeeded,
+			Failed:         job.Status.Failed,
 			StartTime:      startTime,
 			CompletionTime: completionTime,
 			Status:         status,

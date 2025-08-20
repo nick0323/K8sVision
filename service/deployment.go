@@ -18,14 +18,7 @@ func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, names
 	}
 	result := make([]model.DeploymentStatus, 0, len(depList.Items))
 	for _, d := range depList.Items {
-		status := "Unknown"
-		if d.Status.ReadyReplicas == d.Status.Replicas {
-			status = "Healthy"
-		} else if d.Status.ReadyReplicas > 0 {
-			status = "PartialAvailable"
-		} else {
-			status = "Abnormal"
-		}
+		status := GetWorkloadStatus(d.Status.ReadyReplicas, d.Status.Replicas)
 		result = append(result, model.DeploymentStatus{
 			Namespace: d.Namespace,
 			Name:      d.Name,

@@ -38,12 +38,14 @@ info:
   title: K8sVision API
   version: "1.0"
 paths:
-  /cronjobs:
+  /configmaps:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 CronJob 详情
+      description: 获取ConfigMap列表，支持分页
       parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
       - description: 每页数量
         in: query
         name: limit
@@ -59,17 +61,41 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 CronJob 详情
+      summary: 获取 ConfigMap 列表
       tags:
-      - CronJob
-      - CronJob
-  /cronjobs/{namespace}/{name}:
+      - ConfigMap
+  /configmaps/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 CronJob 详情
+      description: 获取指定命名空间下的ConfigMap详情
       parameters:
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: ConfigMap 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 ConfigMap 详情
+      tags:
+      - ConfigMap
+  /cronjobs:
+    get:
+      description: 支持分页
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
       - description: 每页数量
         in: query
         name: limit
@@ -78,6 +104,20 @@ paths:
         in: query
         name: offset
         type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 CronJob 列表
+      tags:
+      - CronJob
+  /cronjobs/{namespace}/{name}:
+    get:
+      description: 获取指定命名空间下的 CronJob 详情
+      parameters:
       - description: 命名空间
         in: path
         name: namespace
@@ -95,16 +135,12 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 CronJob 详情
       tags:
       - CronJob
-      - CronJob
   /daemonsets:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 DaemonSet 详情
+      description: 支持分页
       parameters:
       - description: 每页数量
         in: query
@@ -114,6 +150,10 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
       responses:
         "200":
           description: OK
@@ -121,25 +161,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 DaemonSet 详情
+      summary: 获取 DaemonSet 列表
       tags:
-      - DaemonSet
       - DaemonSet
   /daemonsets/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 DaemonSet 详情
+      description: 获取指定命名空间下的 DaemonSet 详情
       parameters:
-      - description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - description: 偏移量
-        in: query
-        name: offset
-        type: integer
       - description: 命名空间
         in: path
         name: namespace
@@ -157,16 +185,12 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 DaemonSet 详情
       tags:
       - DaemonSet
-      - DaemonSet
   /deployments:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Deployment 详情
+      description: 获取Deployment列表，支持分页
       parameters:
       - description: 命名空间
         in: query
@@ -187,29 +211,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Deployment 详情
+      summary: 获取 Deployment 列表
       tags:
-      - Deployment
       - Deployment
   /deployments/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Deployment 详情
+      description: 获取指定命名空间下的Deployment详情
       parameters:
-      - description: 命名空间
-        in: query
-        name: namespace
-        type: string
-      - description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - description: 偏移量
-        in: query
-        name: offset
-        type: integer
       - description: 命名空间
         in: path
         name: namespace
@@ -227,17 +235,17 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Deployment 详情
       tags:
       - Deployment
-      - Deployment
   /events:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Event 详情
+      description: 支持分页
       parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
       - description: 每页数量
         in: query
         name: limit
@@ -253,25 +261,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Event 详情
+      summary: 获取 Event 列表
       tags:
-      - Event
       - Event
   /events/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Event 详情
+      description: 获取指定命名空间下的 Event 详情
       parameters:
-      - description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - description: 偏移量
-        in: query
-        name: offset
-        type: integer
       - description: 命名空间
         in: path
         name: namespace
@@ -289,17 +285,17 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Event 详情
       tags:
       - Event
-      - Event
   /ingress:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Ingress 详情
+      description: 获取Ingress列表，支持分页
       parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
       - description: 每页数量
         in: query
         name: limit
@@ -315,25 +311,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Ingress 详情
+      summary: 获取 Ingress 列表
       tags:
-      - Ingress
       - Ingress
   /ingress/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Ingress 详情
+      description: 获取指定命名空间下的Ingress详情
       parameters:
-      - description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - description: 偏移量
-        in: query
-        name: offset
-        type: integer
       - description: 命名空间
         in: path
         name: namespace
@@ -351,17 +335,17 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Ingress 详情
       tags:
       - Ingress
-      - Ingress
   /jobs:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Job 详情
+      description: 支持分页
       parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
       - description: 每页数量
         in: query
         name: limit
@@ -377,25 +361,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Job 详情
+      summary: 获取 Job 列表
       tags:
-      - Job
       - Job
   /jobs/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Job 详情
+      description: 获取指定命名空间下的 Job 详情
       parameters:
-      - description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - description: 偏移量
-        in: query
-        name: offset
-        type: integer
       - description: 命名空间
         in: path
         name: namespace
@@ -413,10 +385,8 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Job 详情
       tags:
-      - Job
       - Job
   /login:
     post:
@@ -462,15 +432,16 @@ paths:
       - Auth
   /namespaces:
     get:
-      description: |-
-        获取所有命名空间
-        获取指定命名空间详情
+      description: 获取所有命名空间列表，支持分页
       parameters:
-      - description: 命名空间
-        in: path
-        name: name
-        required: true
-        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
       responses:
         "200":
           description: OK
@@ -478,18 +449,14 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Namespace 详情
+      summary: 获取 Namespace 列表
       tags:
-      - Namespace
       - Namespace
   /namespaces/{name}:
     get:
-      description: |-
-        获取所有命名空间
-        获取指定命名空间详情
+      description: 获取指定命名空间的详细信息
       parameters:
-      - description: 命名空间
+      - description: 命名空间名称
         in: path
         name: name
         required: true
@@ -501,16 +468,21 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Namespace 详情
       tags:
       - Namespace
-      - Namespace
   /nodes:
     get:
-      description: |-
-        获取集群节点列表
-        获取指定节点详情
+      description: 获取集群节点列表，支持分页
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
       responses:
         "200":
           description: OK
@@ -518,16 +490,12 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Node 详情
+      summary: 获取 Node 列表
       tags:
-      - Node
       - Node
   /nodes/{name}:
     get:
-      description: |-
-        获取集群节点列表
-        获取指定节点详情
+      description: 获取指定节点的详细信息
       parameters:
       - description: Node 名称
         in: path
@@ -541,19 +509,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Node 详情
       tags:
-      - Node
       - Node
   /overview:
     get:
       description: 获取集群整体资源状态
       parameters:
-      - description: 命名空间
-        in: query
-        name: namespace
-        type: string
       - description: 每页数量
         in: query
         name: limit
@@ -574,9 +536,7 @@ paths:
       - Overview
   /pods:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Pod 详情
+      description: 获取Pod列表，支持分页
       parameters:
       - description: 命名空间
         in: query
@@ -597,29 +557,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Pod 详情
+      summary: 获取 Pod 列表
       tags:
-      - Pod
       - Pod
   /pods/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Pod 详情
+      description: 获取指定命名空间下的Pod详情
       parameters:
-      - description: 命名空间
-        in: query
-        name: namespace
-        type: string
-      - description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - description: 偏移量
-        in: query
-        name: offset
-        type: integer
       - description: 命名空间
         in: path
         name: namespace
@@ -637,16 +581,62 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Pod 详情
       tags:
       - Pod
-      - Pod
-  /services:
+  /pvcs:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Service 详情
+      description: 获取PVC列表，支持分页
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 PVC 列表
+      tags:
+      - PVC
+  /pvcs/{namespace}/{name}:
+    get:
+      description: 获取指定命名空间下的PVC详情
+      parameters:
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: PVC 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 PVC 详情
+      tags:
+      - PVC
+  /pvs:
+    get:
+      description: 获取PV列表，支持分页
       parameters:
       - description: 每页数量
         in: query
@@ -663,17 +653,36 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 Service 详情
+      summary: 获取 PV 列表
       tags:
-      - Service
-      - Service
-  /services/{namespace}/{name}:
+      - PV
+  /pvs/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 Service 详情
+      description: 获取指定PV的详细信息
       parameters:
+      - description: PV 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 PV 详情
+      tags:
+      - PV
+  /secrets:
+    get:
+      description: 获取Secret列表，支持分页
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
       - description: 每页数量
         in: query
         name: limit
@@ -682,6 +691,70 @@ paths:
         in: query
         name: offset
         type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 Secret 列表
+      tags:
+      - Secret
+  /secrets/{namespace}/{name}:
+    get:
+      description: 获取指定命名空间下的Secret详情
+      parameters:
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Secret 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 Secret 详情
+      tags:
+      - Secret
+  /services:
+    get:
+      description: 获取Service列表，支持分页
+      parameters:
+      - description: 命名空间
+        in: query
+        name: namespace
+        type: string
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 Service 列表
+      tags:
+      - Service
+  /services/{namespace}/{name}:
+    get:
+      description: 获取指定命名空间下的Service详情
+      parameters:
       - description: 命名空间
         in: path
         name: namespace
@@ -699,16 +772,12 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 Service 详情
       tags:
       - Service
-      - Service
   /statefulsets:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 StatefulSet 详情
+      description: 获取StatefulSet列表，支持分页
       parameters:
       - description: 命名空间
         in: query
@@ -729,29 +798,13 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
-      summary: 获取 StatefulSet 详情
+      summary: 获取 StatefulSet 列表
       tags:
-      - StatefulSet
       - StatefulSet
   /statefulsets/{namespace}/{name}:
     get:
-      description: |-
-        支持分页
-        获取指定命名空间下的 StatefulSet 详情
+      description: 获取指定命名空间下的StatefulSet详情
       parameters:
-      - description: 命名空间
-        in: query
-        name: namespace
-        type: string
-      - description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - description: 偏移量
-        in: query
-        name: offset
-        type: integer
       - description: 命名空间
         in: path
         name: namespace
@@ -769,11 +822,50 @@ paths:
             $ref: '#/definitions/model.APIResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: 获取 StatefulSet 详情
       tags:
       - StatefulSet
-      - StatefulSet
+  /storageclasses:
+    get:
+      description: 支持分页
+      parameters:
+      - description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 StorageClass 列表
+      tags:
+      - StorageClass
+  /storageclasses/{name}:
+    get:
+      description: 获取指定 StorageClass 详情
+      parameters:
+      - description: StorageClass 名称
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取 StorageClass 详情
+      tags:
+      - StorageClass
 securityDefinitions:
   BearerAuth:
     in: header

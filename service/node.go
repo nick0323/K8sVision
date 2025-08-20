@@ -99,8 +99,9 @@ func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.Po
 				roles = append(roles, role)
 			}
 		}
+		// 如果没有找到角色标签，默认为worker
 		if len(roles) == 0 {
-			roles = append(roles, "-")
+			roles = append(roles, "worker")
 		}
 		podsUsed := 0
 		for _, pod := range pods.Items {

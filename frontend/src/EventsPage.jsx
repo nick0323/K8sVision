@@ -44,15 +44,22 @@ export default function EventsPage() {
         <RefreshButton onClick={fetchData} />
       </div>
       <CommonTable
+        className="events-table"
         columns={[
-          { title: 'Type', dataIndex: 'type', render: (val, row, i, isTooltip) => isTooltip ? val : <span className={`status-tag ${val === 'Warning' ? 'event-type-warning' : 'event-type-normal'}`}>{val}</span> },
-          { title: 'Reason', dataIndex: 'reason', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Message', dataIndex: 'message', render: (val, row, i, isTooltip) => isTooltip ? val : <span className="event-message" title={val}>{val}</span> },
-          { title: 'Name', dataIndex: 'name', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'First Seen', dataIndex: 'firstSeen', width: 140, render: (val, row, i, isTooltip) => isTooltip ? formatDateTime(val) : <span className="ellipsis-cell">{formatDateTime(val)}</span> },
-          { title: 'Last Seen', dataIndex: 'lastSeen', width: 140, render: (val, row, i, isTooltip) => isTooltip ? formatDateTime(val) : <span className="ellipsis-cell">{formatDateTime(val)}</span> },
-          { title: 'Count', dataIndex: 'count', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
+          { title: 'Type', dataIndex: 'type', render: (val, row, i, isTooltip) => {
+            if (isTooltip) return val;
+            const eventTypeClass = val === 'Warning' ? 'event-type-warning' : 'event-type-normal';
+            return <span className={`event-type ${eventTypeClass}`}>{val}</span>;
+          }
+        },
+        { title: 'Reason', dataIndex: 'reason', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+        { title: 'Message', dataIndex: 'message', render: (val, row, i, isTooltip) => isTooltip ? val : <span className="event-message">{val}</span> },
+        { title: 'Name', dataIndex: 'name', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+        { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+        { title: 'FirstSeen', dataIndex: 'firstSeen', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+        { title: 'LastSeen', dataIndex: 'lastSeen', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+        { title: 'Duration', dataIndex: 'duration', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+        { title: 'Count', dataIndex: 'count', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
         ]}
         data={filteredRows.slice().sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen))}
         pageSize={pageSize}

@@ -1,0 +1,115 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import CommonTable from './CommonTable';
+import { FaSync } from 'react-icons/fa';
+import RefreshButton from './components/RefreshButton';
+import SearchInput from './components/SearchInput';
+import ResourceDetailModal from './components/ResourceDetailModal';
+import { SEARCH_PLACEHOLDER, PAGE_SIZE } from './constants';
+import { useFilterRows } from './utils';
+import Pagination from './Pagination';
+
+export default function StorageClassesPage() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = PAGE_SIZE;
+  const [pageMeta, setPageMeta] = useState({});
+
+  // 详情模态框状态
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [currentResource, setCurrentResource] = useState(null);
+
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    fetch(`/api/storageclasses?limit=${pageSize}&offset=${(page-1)*pageSize}`)
+      .then(res => res.json())
+      .then(res => {
+        setData(res.data || res);
+        setPageMeta(res.page || {});
+      })
+      .finally(() => setLoading(false));
+  }, [page, pageSize]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const filteredRows = useFilterRows(data, ['name'], search);
+
+  // 处理资源点击
+  const handleResourceClick = (resource) => {
+    setCurrentResource({
+      type: 'storageclasses',
+      namespace: null, // StorageClass是集群级别的资源
+      name: resource.name
+    });
+    setDetailModalVisible(true);
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+        <SearchInput
+          placeholder={SEARCH_PLACEHOLDER}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <RefreshButton onClick={fetchData} />
+      </div>
+      <CommonTable
+        columns={[
+          { 
+            title: 'Name', 
+            dataIndex: 'name', 
+            render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              return (
+                <span 
+                  className="resource-name-link" 
+                  onClick={() => handleResourceClick(row)}
+                >
+                  {val}
+                </span>
+              );
+            }
+          },
+          { title: 'Provisioner', dataIndex: 'provisioner', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'ReclaimPolicy', dataIndex: 'reclaimPolicy', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'VolumeBindingMode', dataIndex: 'volumeBindingMode', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'Default', dataIndex: 'isDefault', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val ? 'Yes' : 'No';
+              
+              if (val) {
+                return <span className="status-tag status-ready">Yes</span>;
+              } else {
+                return <span className="status-tag status-pending">No</span>;
+              }
+            }
+          },
+        ]}
+        data={filteredRows}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        total={pageMeta?.total || filteredRows.length}
+        emptyText="No data"
+      />
+      <Pagination
+        currentPage={page}
+        total={pageMeta?.total || filteredRows.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+      />
+
+      {/* 资源详情模态框 */}
+      <ResourceDetailModal
+        visible={detailModalVisible}
+        resourceType={currentResource?.type}
+        namespace={currentResource?.namespace}
+        name={currentResource?.name}
+        onClose={() => setDetailModalVisible(false)}
+      />
+    </div>
+  );
+} 

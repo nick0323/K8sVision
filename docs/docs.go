@@ -15,23 +15,105 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/configmaps": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取ConfigMap列表，支持分页",
+                "tags": [
+                    "ConfigMap"
+                ],
+                "summary": "获取 ConfigMap 列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/configmaps/{namespace}/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取指定命名空间下的ConfigMap详情",
+                "tags": [
+                    "ConfigMap"
+                ],
+                "summary": "获取 ConfigMap 详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ConfigMap 名称",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/cronjobs": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 CronJob 详情",
+                "description": "支持分页",
                 "tags": [
-                    "CronJob",
                     "CronJob"
                 ],
-                "summary": "获取 CronJob 详情",
+                "summary": "获取 CronJob 列表",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "每页数量",
@@ -60,30 +142,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 CronJob 详情",
+                "description": "获取指定命名空间下的 CronJob 详情",
                 "tags": [
-                    "CronJob",
                     "CronJob"
                 ],
                 "summary": "获取 CronJob 详情",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -114,17 +180,13 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 DaemonSet 详情",
+                "description": "支持分页",
                 "tags": [
-                    "DaemonSet",
                     "DaemonSet"
                 ],
-                "summary": "获取 DaemonSet 详情",
+                "summary": "获取 DaemonSet 列表",
                 "parameters": [
                     {
                         "type": "integer",
@@ -136,6 +198,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
                         "in": "query"
                     }
                 ],
@@ -154,30 +222,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 DaemonSet 详情",
+                "description": "获取指定命名空间下的 DaemonSet 详情",
                 "tags": [
-                    "DaemonSet",
                     "DaemonSet"
                 ],
                 "summary": "获取 DaemonSet 详情",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -208,17 +260,13 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Deployment 详情",
+                "description": "获取Deployment列表，支持分页",
                 "tags": [
-                    "Deployment",
                     "Deployment"
                 ],
-                "summary": "获取 Deployment 详情",
+                "summary": "获取 Deployment 列表",
                 "parameters": [
                     {
                         "type": "string",
@@ -254,36 +302,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Deployment 详情",
+                "description": "获取指定命名空间下的Deployment详情",
                 "tags": [
-                    "Deployment",
                     "Deployment"
                 ],
                 "summary": "获取 Deployment 详情",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "命名空间",
-                        "name": "namespace",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -314,18 +340,20 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Event 详情",
+                "description": "支持分页",
                 "tags": [
-                    "Event",
                     "Event"
                 ],
-                "summary": "获取 Event 详情",
+                "summary": "获取 Event 列表",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "每页数量",
@@ -354,30 +382,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Event 详情",
+                "description": "获取指定命名空间下的 Event 详情",
                 "tags": [
-                    "Event",
                     "Event"
                 ],
                 "summary": "获取 Event 详情",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -408,18 +420,20 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Ingress 详情",
+                "description": "获取Ingress列表，支持分页",
                 "tags": [
-                    "Ingress",
                     "Ingress"
                 ],
-                "summary": "获取 Ingress 详情",
+                "summary": "获取 Ingress 列表",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "每页数量",
@@ -448,30 +462,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Ingress 详情",
+                "description": "获取指定命名空间下的Ingress详情",
                 "tags": [
-                    "Ingress",
                     "Ingress"
                 ],
                 "summary": "获取 Ingress 详情",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -502,18 +500,20 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Job 详情",
+                "description": "支持分页",
                 "tags": [
-                    "Job",
                     "Job"
                 ],
-                "summary": "获取 Job 详情",
+                "summary": "获取 Job 列表",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "每页数量",
@@ -542,30 +542,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Job 详情",
+                "description": "获取指定命名空间下的 Job 详情",
                 "tags": [
-                    "Job",
                     "Job"
                 ],
                 "summary": "获取 Job 详情",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -660,24 +644,25 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "获取所有命名空间\n获取指定命名空间详情",
+                "description": "获取所有命名空间列表，支持分页",
                 "tags": [
-                    "Namespace",
                     "Namespace"
                 ],
-                "summary": "获取 Namespace 详情",
+                "summary": "获取 Namespace 列表",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "命名空间",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -695,21 +680,17 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "获取所有命名空间\n获取指定命名空间详情",
+                "description": "获取指定命名空间的详细信息",
                 "tags": [
-                    "Namespace",
                     "Namespace"
                 ],
                 "summary": "获取 Namespace 详情",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "命名空间",
+                        "description": "命名空间名称",
                         "name": "name",
                         "in": "path",
                         "required": true
@@ -730,17 +711,27 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "获取集群节点列表\n获取指定节点详情",
+                "description": "获取集群节点列表，支持分页",
                 "tags": [
-                    "Node",
                     "Node"
                 ],
-                "summary": "获取 Node 详情",
+                "summary": "获取 Node 列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -756,14 +747,10 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "获取集群节点列表\n获取指定节点详情",
+                "description": "获取指定节点的详细信息",
                 "tags": [
-                    "Node",
                     "Node"
                 ],
                 "summary": "获取 Node 详情",
@@ -800,12 +787,6 @@ const docTemplate = `{
                 "summary": "获取集群资源总览",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "命名空间",
-                        "name": "namespace",
-                        "in": "query"
-                    },
-                    {
                         "type": "integer",
                         "description": "每页数量",
                         "name": "limit",
@@ -833,17 +814,13 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Pod 详情",
+                "description": "获取Pod列表，支持分页",
                 "tags": [
-                    "Pod",
                     "Pod"
                 ],
-                "summary": "获取 Pod 详情",
+                "summary": "获取 Pod 列表",
                 "parameters": [
                     {
                         "type": "string",
@@ -879,36 +856,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Pod 详情",
+                "description": "获取指定命名空间下的Pod详情",
                 "tags": [
-                    "Pod",
                     "Pod"
                 ],
                 "summary": "获取 Pod 详情",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "命名空间",
-                        "name": "namespace",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -934,23 +889,252 @@ const docTemplate = `{
                 }
             }
         },
+        "/pvcs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取PVC列表，支持分页",
+                "tags": [
+                    "PVC"
+                ],
+                "summary": "获取 PVC 列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pvcs/{namespace}/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取指定命名空间下的PVC详情",
+                "tags": [
+                    "PVC"
+                ],
+                "summary": "获取 PVC 详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "PVC 名称",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pvs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取PV列表，支持分页",
+                "tags": [
+                    "PV"
+                ],
+                "summary": "获取 PV 列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pvs/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取指定PV的详细信息",
+                "tags": [
+                    "PV"
+                ],
+                "summary": "获取 PV 详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "PV 名称",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/secrets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取Secret列表，支持分页",
+                "tags": [
+                    "Secret"
+                ],
+                "summary": "获取 Secret 列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/secrets/{namespace}/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取指定命名空间下的Secret详情",
+                "tags": [
+                    "Secret"
+                ],
+                "summary": "获取 Secret 详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Secret 名称",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/services": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Service 详情",
+                "description": "获取Service列表，支持分页",
                 "tags": [
-                    "Service",
                     "Service"
                 ],
-                "summary": "获取 Service 详情",
+                "summary": "获取 Service 列表",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "每页数量",
@@ -979,30 +1163,14 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 Service 详情",
+                "description": "获取指定命名空间下的Service详情",
                 "tags": [
-                    "Service",
                     "Service"
                 ],
                 "summary": "获取 Service 详情",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "命名空间",
@@ -1033,17 +1201,13 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 StatefulSet 详情",
+                "description": "获取StatefulSet列表，支持分页",
                 "tags": [
-                    "StatefulSet",
                     "StatefulSet"
                 ],
-                "summary": "获取 StatefulSet 详情",
+                "summary": "获取 StatefulSet 列表",
                 "parameters": [
                     {
                         "type": "string",
@@ -1079,14 +1243,10 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "支持分页\n获取指定命名空间下的 StatefulSet 详情",
+                "description": "获取指定命名空间下的StatefulSet详情",
                 "tags": [
-                    "StatefulSet",
                     "StatefulSet"
                 ],
                 "summary": "获取 StatefulSet 详情",
@@ -1095,8 +1255,40 @@ const docTemplate = `{
                         "type": "string",
                         "description": "命名空间",
                         "name": "namespace",
-                        "in": "query"
+                        "in": "path",
+                        "required": true
                     },
+                    {
+                        "type": "string",
+                        "description": "StatefulSet 名称",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/storageclasses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "支持分页",
+                "tags": [
+                    "StorageClass"
+                ],
+                "summary": "获取 StorageClass 列表",
+                "parameters": [
                     {
                         "type": "integer",
                         "description": "每页数量",
@@ -1108,17 +1300,34 @@ const docTemplate = `{
                         "description": "偏移量",
                         "name": "offset",
                         "in": "query"
-                    },
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/storageclasses/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取指定 StorageClass 详情",
+                "tags": [
+                    "StorageClass"
+                ],
+                "summary": "获取 StorageClass 详情",
+                "parameters": [
                     {
                         "type": "string",
-                        "description": "命名空间",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "StatefulSet 名称",
+                        "description": "StorageClass 名称",
                         "name": "name",
                         "in": "path",
                         "required": true

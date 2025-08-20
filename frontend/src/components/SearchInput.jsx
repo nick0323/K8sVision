@@ -4,10 +4,10 @@ export default function SearchInput({ value, onChange, placeholder, style }) {
   return (
     <input
       type="text"
+      placeholder={placeholder}
       value={value}
       onChange={onChange}
-      placeholder={placeholder}
-      style={{ width: 200, height: 28, fontSize: 15, borderRadius: 6, border: '1px solid #d9d9d9', padding: '0 10px', ...style }}
+      style={{ width: 200, height: 28, fontSize: 'var(--font-size-sm)', borderRadius: 6, border: '1px solid #d9d9d9', padding: '0 10px', ...style }}
     />
   );
 } 

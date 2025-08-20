@@ -1,9 +1,51 @@
 server:
   port: 8080
-  logLevel: info
+  host: "0.0.0.0"
+  readTimeout: 30s
+  writeTimeout: 30s
+  idleTimeout: 60s
+  maxHeaderBytes: 1048576
 
 kubernetes:
   kubeconfig: ""
+  context: ""
+  timeout: 30s
+  qps: 100
+  burst: 200
+  insecure: true
+  caFile: ""
+  certFile: ""
+  keyFile: ""
+  token: ""
+  apiServer: ""
 
 jwt:
-  secret: "" 
+  secret: "k8svision-secret-key"
+  expiration: 24h
+  issuer: "k8svision"
+  audience: "k8svision-client"
+
+log:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  maxSize: 100
+  maxBackups: 3
+  maxAge: 28
+  compress: true
+
+auth:
+  username: "admin"
+  password: "admin"
+  maxLoginFail: 5
+  lockDuration: 10m
+  sessionTimeout: 24h
+  enableRateLimit: true
+  rateLimit: 100
+
+cache:
+  enabled: true
+  type: "memory"
+  ttl: 5m
+  maxSize: 1000
+  cleanupInterval: 10m 

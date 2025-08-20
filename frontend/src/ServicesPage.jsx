@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import CommonTable from './CommonTable';
-import { useFilterRows } from './utils';
+import { FaSync } from 'react-icons/fa';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import ResourceDetailModal from './components/ResourceDetailModal';
 import { SEARCH_PLACEHOLDER, PAGE_SIZE } from './constants';
+import { useFilterRows } from './utils';
 import Pagination from './Pagination';
 
 export default function ServicesPage() {
@@ -13,6 +15,10 @@ export default function ServicesPage() {
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
+
+  // 详情模态框状态
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [currentResource, setCurrentResource] = useState(null);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -29,42 +35,76 @@ export default function ServicesPage() {
     fetchData();
   }, [fetchData]);
 
+  const filteredRows = useFilterRows(data, ['namespace', 'name', 'status'], search);
 
+  // 处理资源点击
+  const handleResourceClick = (resource) => {
+    setCurrentResource({
+      type: 'services',
+      namespace: resource.namespace,
+      name: resource.name
+    });
+    setDetailModalVisible(true);
+  };
 
   return (
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
         <SearchInput
+          placeholder={SEARCH_PLACEHOLDER}
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder={SEARCH_PLACEHOLDER}
         />
         <RefreshButton onClick={fetchData} />
       </div>
       <CommonTable
         columns={[
-          { title: 'Name', dataIndex: 'name', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Type', dataIndex: 'type', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'ClusterIP', dataIndex: 'clusterIP', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
+          { 
+            title: 'Name', 
+            dataIndex: 'name', 
+            render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              return (
+                <span 
+                  className="resource-name-link" 
+                  onClick={() => handleResourceClick(row)}
+                >
+                  {val}
+                </span>
+              );
+            }
+          },
+          { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'Type', dataIndex: 'type', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'ClusterIP', dataIndex: 'clusterIP', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Ports', dataIndex: 'ports', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
               const text = Array.isArray(val) ? val.join(', ') : val;
-              return isTooltip ? text : <span title={text}>{text}</span>;
+              return <span>{text}</span>;
             }
           },
         ]}
-        data={useFilterRows(data, ['namespace', 'name', 'type', 'clusterIP', 'ports'], search)}
+        data={filteredRows}
         pageSize={pageSize}
         currentPage={page}
         onPageChange={setPage}
-        total={pageMeta?.total || data.length}
+        total={pageMeta?.total || filteredRows.length}
         emptyText="No data"
       />
       <Pagination
         currentPage={page}
-        total={pageMeta?.total || data.length}
+        total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+      />
+
+      {/* 资源详情模态框 */}
+      <ResourceDetailModal
+        visible={detailModalVisible}
+        resourceType={currentResource?.type}
+        namespace={currentResource?.namespace}
+        name={currentResource?.name}
+        onClose={() => setDetailModalVisible(false)}
       />
     </div>
   );

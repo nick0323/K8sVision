@@ -3,6 +3,7 @@ import CommonTable from './CommonTable';
 import { FaSync } from 'react-icons/fa';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import ResourceDetailModal from './components/ResourceDetailModal';
 import { SEARCH_PLACEHOLDER, PAGE_SIZE } from './constants';
 import { useFilterRows } from './utils';
 import Pagination from './Pagination';
@@ -14,6 +15,10 @@ export default function CronJobsPage() {
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
+
+  // 详情模态框状态
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [currentResource, setCurrentResource] = useState(null);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -30,7 +35,17 @@ export default function CronJobsPage() {
     fetchData();
   }, [fetchData]);
 
-  const filteredRows = useFilterRows(data, ['namespace', 'name', 'schedule', 'suspend', 'lastScheduleTime', 'active'], search);
+  const filteredRows = useFilterRows(data, ['namespace', 'name', 'status'], search);
+
+  // 处理资源点击
+  const handleResourceClick = (resource) => {
+    setCurrentResource({
+      type: 'cronjobs',
+      namespace: resource.namespace,
+      name: resource.name
+    });
+    setDetailModalVisible(true);
+  };
 
   return (
     <div>
@@ -44,25 +59,51 @@ export default function CronJobsPage() {
       </div>
       <CommonTable
         columns={[
-          { title: 'Name', dataIndex: 'name', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Schedule', dataIndex: 'schedule', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
+          { 
+            title: 'Name', 
+            dataIndex: 'name', 
+            render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              return (
+                <span 
+                  className="resource-name-link" 
+                  onClick={() => handleResourceClick(row)}
+                >
+                  {val}
+                </span>
+              );
+            }
+          },
+          { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'Schedule', dataIndex: 'schedule', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Suspend', dataIndex: 'suspend', render: (val, row, i, isTooltip) => {
-  const text = val === true || val === 'true' ? 'true' : 'false';
-  const color = text === 'true' ? 'event-type-warning' : 'event-type-normal';
-  return isTooltip ? text : <span className={`status-tag ${color}`} title={text}>{text}</span>;
-}},
-          { title: 'Active', dataIndex: 'active', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
-          { title: 'Last Schedule', dataIndex: 'lastScheduleTime', render: (val, row, i, isTooltip) => isTooltip ? val : <span title={val}>{val}</span> },
+              if (isTooltip) return val;
+              return <span className={`status-tag ${val ? 'status-pending' : 'status-ready'}`}>
+                {val ? 'Yes' : 'No'}
+              </span>;
+            }
+          },
+          { title: 'Active', dataIndex: 'active', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'LastSchedule', dataIndex: 'lastScheduleTime', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
-  let tagClass = 'event-type-warning';
-  if (val === 'Active' || val === 'Succeeded') tagClass = 'event-type-normal';
-  else if (val === 'Failed' || val === 'Suspended') tagClass = 'event-type-warning';
-  else if (val === 'Pending' || val === 'Unknown') tagClass = 'event-type-warning';
-  return isTooltip
-    ? val
-    : <span className={`status-tag ${tagClass}`} title={val}>{val}</span>;
-}},
+              if (isTooltip) return val;
+              
+              const isHealthy = val === 'Running' || val === 'Succeeded' || val === 'Ready' || val === 'Healthy' || val === 'Normal' || val === 'Active' || val === 'Bound';
+              const isFailed = val === 'Failed' || val === 'Error' || val === 'CrashLoopBackOff';
+              const isPending = val === 'Pending' || val === 'ContainerCreating' || val === 'PodInitializing';
+              
+              let statusClass = 'status-running';
+              if (isHealthy) {
+                statusClass = 'status-ready';
+              } else if (isFailed) {
+                statusClass = 'status-failed';
+              } else if (isPending) {
+                statusClass = 'status-pending';
+              }
+              
+              return <span className={`status-tag ${statusClass}`}>{val}</span>;
+            }
+          },
         ]}
         data={filteredRows}
         pageSize={pageSize}
@@ -76,6 +117,15 @@ export default function CronJobsPage() {
         total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+      />
+
+      {/* 资源详情模态框 */}
+      <ResourceDetailModal
+        visible={detailModalVisible}
+        resourceType={currentResource?.type}
+        namespace={currentResource?.namespace}
+        name={currentResource?.name}
+        onClose={() => setDetailModalVisible(false)}
       />
     </div>
   );

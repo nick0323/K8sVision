@@ -1,74 +1,45 @@
 package api
 
 import (
-	"time"
+	"context"
+	"net/http"
+	"strconv"
 
 	"github.com/nick0323/K8sVision/model"
-
-	"strings"
+	"github.com/nick0323/K8sVision/api/middleware"
 
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
+	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 var jwtSecret []byte
 
-// InitJWTSecret 初始化 JWT 密钥，优先环境变量，其次 viper 配置，最后默认
+// InitJWTSecret 初始化 JWT 密钥，优先环境变量，其次配置管理器，最后默认
 func InitJWTSecret() {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = viper.GetString("jwt.secret")
-	}
-	if secret == "" {
+		// 这里可以通过配置管理器获取，暂时保持兼容性
 		secret = "k8svision-secret-key"
 	}
 	jwtSecret = []byte(secret)
+	// 同时初始化中间件的JWT密钥
+	middleware.InitJWTSecret(secret)
 }
 
-// GetTraceID 从 gin.Context 获取 traceId
+// GetTraceID 获取请求的追踪ID
 func GetTraceID(c *gin.Context) string {
-	if v, ok := c.Get("traceId"); ok {
-		if tid, ok := v.(string); ok {
-			return tid
+	tid := c.GetHeader("X-Trace-ID")
+	if tid == "" {
+		tid = c.GetString("traceId")
+		if tid == "" {
+			return ""
 		}
 	}
-	return ""
-}
-
-// ResponseError 统一错误响应，支持日志分级，返回标准 APIResponse 结构体
-func ResponseError(c *gin.Context, logger *zap.Logger, err error, code int) {
-	traceId := GetTraceID(c)
-	if logger != nil {
-		if code >= 500 {
-			logger.Error("api error", zap.String("traceId", traceId), zap.Error(err))
-		} else {
-			logger.Warn("api warn", zap.String("traceId", traceId), zap.Error(err))
-		}
-	}
-	c.JSON(code, model.APIResponse{
-		Code:      code,
-		Message:   err.Error(),
-		Data:      nil,
-		TraceID:   traceId,
-		Timestamp: time.Now().Unix(),
-	})
-}
-
-// ResponseOK 统一成功响应
-func ResponseOK(c *gin.Context, data interface{}, msg string, page *model.PageMeta) {
-	traceId := GetTraceID(c)
-	c.JSON(200, model.APIResponse{
-		Code:      0,
-		Message:   msg,
-		Data:      data,
-		TraceID:   traceId,
-		Timestamp: time.Now().Unix(),
-		Page:      page,
-	})
+	return tid
 }
 
 // Paginate 对任意切片类型进行分页，返回 offset-limit 范围内的子切片
@@ -83,23 +54,60 @@ func Paginate[T any](list []T, offset, limit int) []T {
 	return list[offset:end]
 }
 
-// JWTAuthMiddleware Gin中间件
-func JWTAuthMiddleware() gin.HandlerFunc {
+// GenericListHandler 通用列表处理函数
+func GenericListHandler[T any](
+	logger *zap.Logger,
+	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+	listFunc func(context.Context, *kubernetes.Clientset, string) ([]T, error),
+) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenStr := c.GetHeader("Authorization")
-		traceId := GetTraceID(c)
-		if tokenStr == "" || !strings.HasPrefix(tokenStr, "Bearer ") {
-			c.AbortWithStatusJSON(401, gin.H{"message": "Unauthorized", "traceId": traceId})
+		clientset, _, err := getK8sClient()
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+		ctx := context.Background()
+		namespace := c.DefaultQuery("namespace", "")
+		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+		items, err := listFunc(ctx, clientset, namespace)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+
+		paged := Paginate(items, offset, limit)
+		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
+			Total:  len(items),
+			Limit:  limit,
+			Offset: offset,
 		})
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(401, gin.H{"message": "Token is invalid or expired", "traceId": traceId})
+	}
+}
+
+// GenericDetailHandler 通用详情处理函数
+func GenericDetailHandler[T any](
+	logger *zap.Logger,
+	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+	getFunc func(context.Context, *kubernetes.Clientset, string, string) (T, error),
+) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		clientset, _, err := getK8sClient()
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		c.Next()
+		ctx := context.Background()
+		ns := c.Param("namespace")
+		name := c.Param("name")
+
+		item, err := getFunc(ctx, clientset, ns, name)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusNotFound)
+			return
+		}
+
+		middleware.ResponseSuccess(c, item, "success", nil)
 	}
 }

@@ -19,7 +19,7 @@ export function formatRelativeTime(dateStr) {
   return `${Math.floor(diff/86400)} days ago`;
 }
 
-export function useFetch(url, options) {
+export function useFetch(url, options = {}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,20 +29,44 @@ export function useFetch(url, options) {
     let ignore = false;
     setLoading(true);
     setError(null);
-    fetch(url, options)
-      .then(res => {
-        if (!res.ok) throw new Error(res.statusText || 'Network error');
-        return res.json();
-      })
-      .then(res => {
-        if (!ignore) setData(res.data || res);
-      })
-      .catch(e => {
-        if (!ignore) setError(e.message || '请求失败');
-      })
-      .finally(() => {
-        if (!ignore) setLoading(false);
-      });
+    
+    try {
+      // 合并认证头
+      const authHeaders = getAuthHeaders();
+      const fetchOptions = {
+        ...options,
+        headers: {
+          ...authHeaders,
+          ...(options.headers || {})
+        }
+      };
+      
+      fetch(url, fetchOptions)
+        .then(res => {
+          if (!res.ok) {
+            if (res.status === 401) {
+              logout();
+            }
+            throw new Error(res.statusText || 'Network error');
+          }
+          return res.json();
+        })
+        .then(res => {
+          if (!ignore) setData(res.data || res);
+        })
+        .catch(e => {
+          if (!ignore) setError(e.message || '请求失败');
+        })
+        .finally(() => {
+          if (!ignore) setLoading(false);
+        });
+    } catch (e) {
+      if (!ignore) {
+        setError('请求配置错误');
+        setLoading(false);
+      }
+    }
+    
     return () => { ignore = true; };
   }, [url, JSON.stringify(options)]);
 
@@ -57,4 +81,44 @@ export function useFilterRows(rows, fields, search) {
       fields.some(f => (row[f] || '').toString().toLowerCase().includes(kw))
     );
   }, [rows, fields, search]);
+}
+
+// 认证相关工具函数
+export function getAuthHeaders() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return {};
+  }
+  
+  // 验证token格式
+  const segments = token.split('.');
+  if (segments.length !== 3) {
+    localStorage.removeItem('token');
+    return {};
+  }
+  
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  };
+}
+
+export function validateToken() {
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+  
+  const segments = token.split('.');
+  if (segments.length !== 3) {
+    localStorage.removeItem('token');
+    return false;
+  }
+  
+  return true;
+}
+
+export function logout() {
+  localStorage.removeItem('token');
+  // 不清除 remembered_username 和 remembered_password，保持"记住我"功能
+  // 触发页面刷新，让App组件重新检查登录状态
+  window.location.reload();
 } 

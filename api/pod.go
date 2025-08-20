@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
@@ -16,8 +17,19 @@ import (
 )
 
 // RegisterPod 注册 Pod 相关路由，包括列表和详情接口
+func RegisterPod(
+	r *gin.RouterGroup,
+	logger *zap.Logger,
+	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+	listPodsWithRaw func(context.Context, *kubernetes.Clientset, model.PodMetricsMap, string) ([]model.PodStatus, *v1.PodList, error),
+) {
+	r.GET("/pods", getPodList(logger, getK8sClient, listPodsWithRaw))
+	r.GET("/pods/:namespace/:name", getPodDetail(logger, getK8sClient))
+}
+
+// getPodList 获取Pod列表的处理函数
 // @Summary 获取 Pod 列表
-// @Description 支持分页
+// @Description 获取Pod列表，支持分页
 // @Tags Pod
 // @Security BearerAuth
 // @Param namespace query string false "命名空间"
@@ -25,25 +37,15 @@ import (
 // @Param offset query int false "偏移量"
 // @Success 200 {object} model.APIResponse
 // @Router /pods [get]
-//
-// @Summary 获取 Pod 详情
-// @Description 获取指定命名空间下的 Pod 详情
-// @Tags Pod
-// @Security BearerAuth
-// @Param namespace path string true "命名空间"
-// @Param name path string true "Pod 名称"
-// @Success 200 {object} model.APIResponse
-// @Router /pods/{namespace}/{name} [get]
-func RegisterPod(
-	r *gin.RouterGroup,
+func getPodList(
 	logger *zap.Logger,
 	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
 	listPodsWithRaw func(context.Context, *kubernetes.Clientset, model.PodMetricsMap, string) ([]model.PodStatus, *v1.PodList, error),
-) {
-	r.GET("/pods", func(c *gin.Context) {
+) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		clientset, metricsClient, err := getK8sClient()
 		if err != nil {
-			ResponseError(c, logger, err, http.StatusInternalServerError)
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
 		ctx := context.Background()
@@ -64,21 +66,35 @@ func RegisterPod(
 		}
 		podStatuses, _, err := listPodsWithRaw(ctx, clientset, podMetricsMap, namespace)
 		if err != nil {
-			ResponseError(c, logger, err, http.StatusInternalServerError)
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
 		paged := Paginate(podStatuses, offset, limit)
-		ResponseOK(c, paged, "success", &model.PageMeta{
+		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
 			Total:  len(podStatuses),
 			Limit:  limit,
 			Offset: offset,
 		})
-	})
+	}
+}
 
-	r.GET("/pods/:namespace/:name", func(c *gin.Context) {
+// getPodDetail 获取Pod详情的处理函数
+// @Summary 获取 Pod 详情
+// @Description 获取指定命名空间下的Pod详情
+// @Tags Pod
+// @Security BearerAuth
+// @Param namespace path string true "命名空间"
+// @Param name path string true "Pod 名称"
+// @Success 200 {object} model.APIResponse
+// @Router /pods/{namespace}/{name} [get]
+func getPodDetail(
+	logger *zap.Logger,
+	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
 		if err != nil {
-			ResponseError(c, logger, err, http.StatusInternalServerError)
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
 		ctx := context.Background()
@@ -86,12 +102,12 @@ func RegisterPod(
 		name := c.Param("name")
 		pod, err := clientset.CoreV1().Pods(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			ResponseError(c, logger, err, http.StatusNotFound)
+			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
 		containers := make([]string, 0, len(pod.Spec.Containers))
 		for _, ctn := range pod.Spec.Containers {
-			containers = append(containers, ctn.Name)
+			containers = append(containers, ctn.Name + " (" + ctn.Image + ")")
 		}
 		podDetail := model.PodDetail{
 			Namespace:   pod.Namespace,
@@ -99,11 +115,11 @@ func RegisterPod(
 			Status:      string(pod.Status.Phase),
 			PodIP:       pod.Status.PodIP,
 			NodeName:    pod.Spec.NodeName,
-			StartTime:   model.FormatTime(pod.Status.StartTime),
+			StartTime:   pod.Status.StartTime.Format("2006-01-02 15:04:05"),
 			Labels:      pod.Labels,
 			Annotations: pod.Annotations,
 			Containers:  containers,
 		}
-		ResponseOK(c, podDetail, "success", nil)
-	})
+		middleware.ResponseSuccess(c, podDetail, "success", nil)
+	}
 }

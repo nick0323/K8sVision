@@ -18,14 +18,7 @@ func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, name
 	}
 	result := make([]model.StatefulSetStatus, 0, len(stsList.Items))
 	for _, s := range stsList.Items {
-		status := "Unknown"
-		if s.Status.ReadyReplicas == s.Status.Replicas {
-			status = "Healthy"
-		} else if s.Status.ReadyReplicas > 0 {
-			status = "PartialAvailable"
-		} else {
-			status = "Abnormal"
-		}
+		status := GetWorkloadStatus(s.Status.ReadyReplicas, s.Status.Replicas)
 		result = append(result, model.StatefulSetStatus{
 			Namespace: s.Namespace,
 			Name:      s.Name,

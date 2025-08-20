@@ -9,28 +9,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListDaemonSets 采集指定命名空间（或全部）下的 DaemonSet 信息，返回 DaemonSetStatus 列表
-// namespace 为空时返回所有命名空间
+// ListDaemonSets 采集 DaemonSet 信息，支持命名空间过滤
 func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.DaemonSetStatus, error) {
-	daemonList, err := clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+	dsList, err := clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	result := make([]model.DaemonSetStatus, 0, len(daemonList.Items))
-	for _, d := range daemonList.Items {
-		status := "Unknown"
-		if d.Status.NumberReady == d.Status.DesiredNumberScheduled {
-			status = "Healthy"
-		} else if d.Status.NumberReady > 0 {
-			status = "PartialAvailable"
-		} else {
-			status = "Abnormal"
-		}
+	result := make([]model.DaemonSetStatus, 0, len(dsList.Items))
+	for _, ds := range dsList.Items {
+		status := GetResourceStatus(ds.Status.NumberReady, ds.Status.DesiredNumberScheduled)
 		result = append(result, model.DaemonSetStatus{
-			Namespace: d.Namespace,
-			Name:      d.Name,
-			Available: d.Status.NumberReady,
-			Desired:   d.Status.DesiredNumberScheduled,
+			Namespace: ds.Namespace,
+			Name:      ds.Name,
+			Available: ds.Status.NumberReady,
+			Desired:   ds.Status.DesiredNumberScheduled,
 			Status:    status,
 		})
 	}

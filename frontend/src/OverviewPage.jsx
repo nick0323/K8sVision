@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import InfoCard from './InfoCard';
 import ResourceSummary from './ResourceSummary';
 import { formatDateTime, formatRelativeTime, useFetch } from './utils';
@@ -11,6 +11,13 @@ export default function OverviewPage() {
   // const [loading, setLoading] = useState(false);
   const { data, loading, error } = useFetch('/api/overview');
   const safeData = data || {};
+  const leftColRef = useRef(null);
+  const [leftColHeight, setLeftColHeight] = useState(undefined);
+  useEffect(() => {
+    if (leftColRef.current) {
+      setLeftColHeight(leftColRef.current.offsetHeight);
+    }
+  }, [data, loading, error]);
 
   return (
     <div>
@@ -18,12 +25,13 @@ export default function OverviewPage() {
       {error && <div style={{textAlign:'center',color:'red',padding:'32px 0'}}>{ERROR_TEXT}{error}</div>}
       {!loading && !error && (
         <>
+          <div className="overview-title-main">Overview</div>
           <div className="overview-grid">
             <InfoCard
               icon={<FaDesktop />}
               title="Nodes"
               value={safeData.nodeCount || 0}
-              status={safeData.nodeCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:16}}>{EMPTY_TEXT}</span></div> : (
+              status={safeData.nodeCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>{EMPTY_TEXT}</span></div> : (
                 <span className={safeData.nodeReady === safeData.nodeCount ? 'status-ready' : 'status-failed'}>
                   {safeData.nodeReady === safeData.nodeCount ? 'All Ready' : `${safeData.nodeCount - safeData.nodeReady} Not Ready`}
                 </span>
@@ -33,7 +41,7 @@ export default function OverviewPage() {
               icon={<FaCubes />}
               title="Pods"
               value={safeData.podCount || 0}
-              status={safeData.podCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:16}}>{EMPTY_TEXT}</span></div> : (
+              status={safeData.podCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>{EMPTY_TEXT}</span></div> : (
                 <span className={safeData.podNotReady === 0 ? 'status-ready' : 'status-failed'}>
                   {safeData.podNotReady === 0 ? 'All Ready' : `${safeData.podNotReady} Not Ready`}
                 </span>
@@ -43,7 +51,7 @@ export default function OverviewPage() {
               icon={<LuSquareDashed />}
               title="Namespaces"
               value={safeData.namespaceCount || 0}
-              status={safeData.namespaceCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:16}}>{EMPTY_TEXT}</span></div> : (
+              status={safeData.namespaceCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>{EMPTY_TEXT}</span></div> : (
                 <span className="status-ready">All Ready</span>
               )}
             />
@@ -51,14 +59,18 @@ export default function OverviewPage() {
               icon={<FaProjectDiagram />}
               title="Services"
               value={safeData.serviceCount || 0}
-              status={safeData.serviceCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:16}}>{EMPTY_TEXT}</span></div> : (
+              status={safeData.serviceCount === 0 ? <div className="center-empty"><span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>{EMPTY_TEXT}</span></div> : (
                 <span className="status-ready">All Ready</span>
               )}
             />
           </div>
           <div className="overview-row2">
-            <div className="overview-left-col">
-              <ResourceSummary
+            <div
+              className="overview-left-col"
+              ref={leftColRef}
+              style={leftColHeight ? { minHeight: leftColHeight, display: 'flex', flexDirection: 'column', gap: '16px' } : {}}
+            >
+              <ResourceSummary style={{ flex: 1 }}
                 title="CPU Resources"
                 requestsValue={safeData.cpuRequests?.toFixed(1) || 0}
                 requestsPercent={((safeData.cpuRequests/safeData.cpuCapacity)*100 || 0).toFixed(1)}
@@ -68,7 +80,7 @@ export default function OverviewPage() {
                 availableValue={(safeData.cpuCapacity - safeData.cpuRequests)?.toFixed(1) || 0}
                 unit="cores"
               />
-              <ResourceSummary
+              <ResourceSummary style={{ flex: 1 }}
                 title="Memory Resources"
                 requestsValue={safeData.memoryRequests?.toFixed(1) || 0}
                 requestsPercent={((safeData.memoryRequests/safeData.memoryCapacity)*100 || 0).toFixed(1)}
@@ -80,8 +92,17 @@ export default function OverviewPage() {
               />
             </div>
             <div className="overview-event-col">
-              <div className="overview-event-card resource-summary-card" style={{minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-                <div className="resource-summary-title">Recent Events</div>  
+              <div
+                className="overview-event-card resource-summary-card"
+                style={{
+                  minHeight: leftColHeight,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                }}
+              >
+                <div className="resource-summary-title">Recent Events</div>
                 {safeData.events && safeData.events.length > 0 ? (
                   safeData.events
                     .slice()
@@ -94,14 +115,13 @@ export default function OverviewPage() {
                         </div>
                         <div style={{flex:1}}>
                           <div style={{display:'flex',alignItems:'center',marginBottom:2}}>
-                            <span style={{display:'inline-block',background:e.type==='Warning'?'#ffeaea':'#e6f7e6',color:e.type==='Warning'?'#ff4d4f':'#52c41a',borderRadius:6,padding:'2px 10px',fontSize:13,fontWeight:600,marginRight:8}}
-                              className={e.type==='Warning' ? 'status-tag event-type-warning' : 'status-tag event-type-normal'}
+                            <span className={e.type === 'Warning' ? 'event-type-warning' : 'event-type-normal'} style={{background: e.type === 'Warning' ? '#ffeaea' : '#e6f7ff', color: e.type === 'Warning' ? '#ff4d4f' : '#1890ff',borderRadius:'10px',padding:'2px 10px',fontSize:'var(--font-size-sm)',fontWeight:600,marginRight:8}}
                             >{e.type}</span>
-                            <span style={{fontWeight:600,fontSize:15,color:'#222',marginRight:8}}>{e.reason}</span>
-                            <span style={{marginLeft:'auto',fontSize:13,color:'#888',fontWeight:400}}>{formatRelativeTime(e.lastSeen)}</span>
+                            <span style={{fontWeight:600,fontSize:'var(--font-size-sm)',color:'#222',marginRight:8}}>{e.reason}</span>
+                            <span style={{marginLeft:'auto',fontSize:'var(--font-size-sm)',color:'#888',fontWeight:400}}>{formatRelativeTime(e.lastSeen)}</span>
                           </div>
-                          <div style={{fontSize:15,color:'#444',marginBottom:2,wordBreak:'break-all'}}>{e.message}</div>
-                          <div style={{fontSize:13,color:'#888',fontWeight:400}}>
+                          <div style={{fontSize:'var(--font-size-sm)',color:'#444',marginBottom:2,wordBreak:'break-all'}}>{e.message}</div>
+                          <div style={{fontSize:'var(--font-size-sm)',color:'#888',fontWeight:400}}>
                             {e.pod ? `Pod: ${e.pod}` : ''}
                             {e.cloneset ? `CloneSet: ${e.cloneset}` : ''}
                             {e.namespace && e.name ? `Pod: ${e.namespace}/${e.name}` : ''}
@@ -111,7 +131,7 @@ export default function OverviewPage() {
                       </div>
                     ))
                 ) : (
-                  <div style={{color:'#888',fontSize:15,padding:'24px 0',textAlign:'center'}}>{EMPTY_TEXT}</div>
+                  <div style={{color:'#888',fontSize:'var(--font-size-sm)',padding:'24px 0',textAlign:'center'}}>{EMPTY_TEXT}</div>
                 )}
               </div>
             </div>
