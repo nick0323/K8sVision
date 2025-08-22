@@ -3,46 +3,79 @@ import CommonTable from './CommonTable';
 import { formatDateTime } from './utils';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import NamespaceSelect from './components/NamespaceSelect';
+import PageHeader from './components/PageHeader';
 import { SEARCH_PLACEHOLDER } from './constants';
 import { PAGE_SIZE } from './constants';
 import { useFilterRows } from './utils';
 import Pagination from './Pagination';
 
-export default function EventsPage() {
+export default function EventsPage({ collapsed, onToggleCollapsed }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [namespace, setNamespace] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(`/api/events?limit=${pageSize}&offset=${(page-1)*pageSize}`)
+    const params = new URLSearchParams({
+      limit: pageSize.toString(),
+      offset: ((page-1)*pageSize).toString(),
+    });
+    
+    if (namespace) {
+      params.append('namespace', namespace);
+    }
+    
+    fetch(`/api/events?${params}`)
       .then(res => res.json())
       .then(res => {
-        setData(res.data || res);
+        // 确保数据始终是数组
+        const dataList = res.data || res || [];
+        setData(Array.isArray(dataList) ? dataList : []);
         setPageMeta(res.page || {});
       })
+      .catch(error => {
+        console.error('Failed to fetch Events:', error);
+        setData([]); // 出错时设置为空数组
+        setPageMeta({});
+      })
       .finally(() => setLoading(false));
-  }, [page, pageSize]);
+  }, [page, pageSize, namespace]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // 当namespace变化时重置到第一页
+  useEffect(() => {
+    setPage(1);
+  }, [namespace]);
+
   const filteredRows = useFilterRows(data, ['namespace', 'name', 'reason', 'message', 'type', 'firstSeen', 'lastSeen', 'count'], search);
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+      <PageHeader
+        title="Events"
+        collapsed={collapsed}
+        onToggleCollapsed={onToggleCollapsed}
+      >
+        <NamespaceSelect
+          value={namespace}
+          onChange={setNamespace}
+          placeholder="All Namespaces"
+        />
         <SearchInput
+          placeholder={SEARCH_PLACEHOLDER}
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder={SEARCH_PLACEHOLDER}
         />
         <RefreshButton onClick={fetchData} />
-      </div>
+      </PageHeader>
       <CommonTable
         className="events-table"
         columns={[
@@ -67,12 +100,14 @@ export default function EventsPage() {
         onPageChange={setPage}
         total={pageMeta?.total || filteredRows.length}
         emptyText="No events"
+        hasFixedPagination={false}
       />
       <Pagination
         currentPage={page}
         total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+        fixedBottom={true}
       />
     </div>
   );

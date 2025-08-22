@@ -80,7 +80,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Pod IP" value={data.podIP} />
               <DetailItem label="Node" value={data.nodeName} />
               <DetailItem label="Start Time" value={data.startTime} />
@@ -115,7 +115,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Replicas" value={data.replicas} />
               <DetailItem label="Available" value={data.available} />
               <DetailItem label="Desired" value={data.desired} />
@@ -141,7 +141,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Replicas" value={data.replicas} />
               <DetailItem label="Available" value={data.available} />
               <DetailItem label="Desired" value={data.desired} />
@@ -167,7 +167,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Available" value={data.available} />
               <DetailItem label="Desired" value={data.desired} />
             </DetailCard>
@@ -191,7 +191,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Completions" value={data.completions} />
               {/* 新增字段 */}
               <DetailItem label="Succeeded" value={data.succeeded} />
@@ -220,7 +220,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Schedule" value={data.schedule} />
               <DetailItem label="Last Schedule" value={data.lastScheduleTime} />
               {/* 新增字段 */}
@@ -249,7 +249,7 @@ export default function ResourceDetailModal({
               <DetailItem label="Namespace" value={data.namespace} />
               <DetailItem label="Type" value={data.type} />
               <DetailItem label="Cluster IP" value={data.clusterIP} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
             </DetailCard>
 
             <DetailCard title="Ports">
@@ -271,7 +271,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Address" value={data.address} />
               <DetailItem label="Class" value={data.class} />
             </DetailCard>
@@ -298,7 +298,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="IP" value={data.ip} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               {/* 修复百分比显示 */}
               <DetailItem label="CPU Usage" value={data.cpuUsage} type="percentage" />
               <DetailItem label="Memory Usage" value={data.memoryUsage} type="percentage" />
@@ -324,7 +324,7 @@ export default function ResourceDetailModal({
         return (
           <div className="detail-content">
             <DetailCard title="Basic Info">
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
             </DetailCard>
 
             <DetailCard title="Labels">
@@ -387,7 +387,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Capacity" value={data.capacity} />
               <DetailItem label="Storage Class" value={data.storageClass} />
               <DetailItem label="Volume Name" value={data.volumeName} />
@@ -411,7 +411,7 @@ export default function ResourceDetailModal({
         return (
           <div className="detail-content">
             <DetailCard title="Basic Info">
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
               <DetailItem label="Capacity" value={data.capacity} />
               <DetailItem label="Storage Class" value={data.storageClass} />
               <DetailItem label="Claim Ref" value={data.claimRef} />
@@ -461,7 +461,7 @@ export default function ResourceDetailModal({
           <div className="detail-content">
             <DetailCard title="Basic Info">
               <DetailItem label="Namespace" value={data.namespace} />
-              <DetailItem label="Status" value={data.status} type="status" />
+              <DetailItem label="State" value={data.status} type="status" />
             </DetailCard>
 
             <DetailCard title="Labels">

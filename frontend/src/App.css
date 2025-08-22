@@ -98,7 +98,86 @@
   border-right: 1px solid var(--border-secondary);
   overflow: hidden;
   font-family: var(--font-main);
+  transition: width 0.2s ease, min-width 0.2s ease;
 }
+
+/* 侧边栏折叠状态样式 */
+.sider-menu.collapsed {
+  width: 64px;
+  min-width: 64px;
+}
+
+.sider-menu.collapsed .logo-text-full {
+  display: none;
+}
+
+.sider-menu.collapsed .logo-text-compact {
+  display: none; /* 折叠时不显示KV文字 */
+}
+
+.sider-menu:not(.collapsed) .logo-text-compact {
+  display: none;
+}
+
+/* 折叠状态下的logo区域布局优化 */
+.sider-menu.collapsed .logo-area {
+  justify-content: center;
+  padding: 0;
+}
+
+.sider-menu.collapsed .logo-text-compact {
+  font-size: var(--font-size-lg); /* 调整折叠状态下的logo大小 */
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 1px;
+}
+
+.sider-menu.collapsed .sider-scroll span:not(.icon) {
+  display: none;
+}
+
+.sider-menu.collapsed .sider-bottom span:not(.icon) {
+  display: none;
+}
+
+.sider-menu.collapsed .menu-group-title {
+  display: none !important;
+}
+
+.sider-menu.collapsed li {
+  justify-content: center;
+  padding: var(--spacing-sm) 0;
+  margin: 0 8px 4px 8px; /* 添加左右边距，让图标居中 */
+  border-radius: 4px; /* 改为全圆角，因为不再有左边距 */
+  transition: all 0.2s ease; /* 添加过渡效果 */
+}
+
+.sider-menu.collapsed li:hover,
+.sider-menu.collapsed li.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  transform: scale(1.05); /* 添加轻微的缩放效果 */
+}
+
+.sider-menu.collapsed .icon {
+  margin-right: 0;
+  font-size: 16px; /* 稍微增大图标尺寸 */
+}
+
+/* 折叠状态下折叠按钮的样式优化 */
+.sider-menu.collapsed .sider-collapse-btn {
+  right: 8px; /* 保持右侧位置 */
+  width: 20px; /* 稍微减小按钮大小 */
+  height: 20px;
+  background: rgba(37, 99, 235, 0.1); /* 添加轻微背景色 */
+  border-radius: 4px;
+}
+
+.sider-menu.collapsed .sider-collapse-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  color: var(--primary);
+}
+
 .sider-menu .sider-top {
   flex: 0 0 auto;
   display: flex;
@@ -173,17 +252,74 @@
   font-size: var(--font-size-3xl);
   color: var(--primary);
   letter-spacing: 1px;
+  position: relative;
 }
 
-@media (max-width: 900px) {
-  .sider-menu {
-    width: 60px;
-    min-width: 40px;
-    padding-top: 12px;
-  }
-  .sider-menu li span:not(.icon) {
-    display: none;
-  }
+/* 折叠按钮样式 */
+.sider-collapse-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-quaternary);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.sider-collapse-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+/* 页面头部折叠按钮样式 */
+.page-collapse-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  margin: 0;
+  outline: none; /* 移除默认焦点轮廓 */
+}
+
+/* 确保React Icons图标正确显示 */
+.page-collapse-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  display: block !important;
+  color: inherit;
+}
+
+.page-collapse-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
+  transform: scale(1.05);
+}
+
+.page-collapse-btn:active {
+  transform: scale(0.95);
+}
+
+/* 确保在获得焦点时也没有轮廓 */
+.page-collapse-btn:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 /* 右侧内容区自适应 */
@@ -191,25 +327,19 @@
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
-  height: auto;
+  height: 100vh; /* 明确设置高度 */
   width: 100%;
   max-width: none;
-  padding: var(--spacing-sm) 2vw 0 2vw;
+  padding: var(--spacing-xl) var(--spacing-xl) 0 var(--spacing-xl);
   background: var(--bg-primary);
   margin: 0;
   box-sizing: border-box;
   min-height: 0;
   transition: padding 0.2s;
-  overflow-x: auto;
+  overflow-y: auto; /* 允许主内容区域滚动 */
+  overflow-x: hidden;
   font-family: var(--font-main);
-  background: var(--bg-primary);
-  padding: var(--spacing-xl) var(--spacing-xl) 0 var(--spacing-xl);
-  min-height: 100vh;
-}
-@media (max-width: 900px) {
-  .main-content {
-    padding: 8px 4px 0 4px;
-  }
+  padding-bottom: 0px; /* 完全消除底部内边距，减少表格下方的空白 */
 }
 
 /* 表格卡片内容区自适应 */
@@ -217,30 +347,65 @@
   height: auto;
   width: 100%;
   max-width: 100%;
-  margin: 0 auto var(--spacing-lg) auto;
+  margin: 0 auto 8px auto; /* 设置底部边距为8px，在表格和分页组件之间创建8px空白 */
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
   padding: 0;
   box-sizing: border-box;
+  overflow: hidden; /* 恢复hidden以保持圆角效果 */
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0; /* 防止收缩，保持内容完整显示 */
+  position: relative; /* 为固定分页提供定位上下文 */
+  margin-bottom: 8px; /* 设置表格卡片底部边距为8px，在表格和分页组件之间创建8px空白 */
 }
-@media (max-width: 900px) {
-  .table-card {
-    padding: 8px 4px;
-  }
+
+/* 当分页固定时，为表格卡片添加底部边距 */
+.table-card.has-fixed-pagination {
+  margin-bottom: 8px; /* 设置8px空白，让表格和分页组件之间有适当的间距 */
 }
 
 /* 表格内容区高度自适应，最大化利用空间 */
 .table-content-area {
-  max-height: 800px; /* 可根据实际需求调整 */
+  max-height: calc(100vh - 120px); /* 进一步减少限制，让表格内容区尽可能大 */
+  min-height: 200px; /* 添加最小高度，确保表格内容能够正确显示 */
+  height: auto; /* 确保高度完全自适应内容 */
   overflow-y: auto;
   overflow-x: auto;
   display: block;
+  position: relative; /* 为sticky定位提供上下文 */
+  flex: none; /* 改为none，让内容决定高度 */
+  margin: 0; /* 确保没有任何边距 */
+  padding: 0; /* 确保没有任何内边距 */
+}
+
+/* 当表格数据较少时，减少不必要的空白 */
+.table-content-area:has(.table tbody tr:nth-child(1):last-child) {
+  min-height: auto;
+  flex: none;
+}
+
+/* 兼容性方案：为少量数据的表格内容区域添加特殊类 */
+.table-content-area.compact {
+  min-height: auto;
+  height: auto;
+  flex: none;
 }
 .table-content-area::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  background: transparent;
+  width: 6px;
+  height: 6px;
+}
+.table-content-area::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+.table-content-area::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+.table-content-area::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* 表格最大宽度限制 */
@@ -251,6 +416,22 @@
   border-collapse: collapse;
   background: transparent;
   font-family: var(--font-main);
+  position: relative; /* 为sticky定位提供上下文 */
+  min-height: auto; /* 确保表格不被高度限制 */
+}
+
+/* 确保表格体和行正常显示 */
+.table tbody {
+  display: table-row-group;
+}
+
+.table tbody tr {
+  display: table-row;
+  transition: background-color 0.2s ease;
+}
+
+.table tbody td {
+  display: table-cell;
 }
 
 /* 表格单元格内容不换行，保持原始布局 */
@@ -264,89 +445,25 @@
   word-break: normal;         /* 禁用强制换行 */
 }
 
-/* 移除响应式换行设置，保持一致性 */
-/* 小屏设备（平板及以下）保持省略效果 */
-@media (max-width: 1024px) {
-  .table th,
-  .table td,
-  .ellipsis-cell {
-    white-space: nowrap;      /* 保持不换行 */
-    overflow: hidden;         /* 保持隐藏溢出 */
-    text-overflow: ellipsis;  /* 保持省略号 */
-    word-wrap: normal;        /* 禁用换行 */
-    word-break: normal;       /* 禁用强制换行 */
-  }
-  
-  .cell-ellipsis {
-    max-width: 180px;         /* 限制宽度 */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  /* 小屏设备表格优化 */
-  .table {
-    table-layout: fixed;      /* 固定表格布局 */
-  }
-  
-  .table th,
-  .table td {
-    padding: var(--spacing-xs) var(--spacing-sm); /* 减少内边距 */
-  }
-}
-
-/* 超小屏设备（手机）进一步优化 */
-@media (max-width: 768px) {
-  .table th,
-  .table td,
-  .ellipsis-cell {
-    max-width: 120px;           /* 手机端更严格的宽度限制 */
-    font-size: var(--font-size-xs) !important; /* 手机端字体更小 */
-    white-space: nowrap;        /* 确保手机端也不换行 */
-    overflow: hidden;           /* 确保手机端也隐藏溢出 */
-    text-overflow: ellipsis;    /* 确保手机端也显示省略号 */
-  }
-  
-  .cell-ellipsis {
-    max-width: 120px;
-    white-space: nowrap;        /* 确保手机端也不换行 */
-    overflow: hidden;           /* 确保手机端也隐藏溢出 */
-    text-overflow: ellipsis;    /* 确保手机端也显示省略号 */
-  }
-}
-
-.table td.name-col {
-  /* max-width: 400px;  // 移除限制，完全自适应 */
-}
-
 .table th {
   position: sticky;
   top: 0;
-  z-index: 2;
-  background: var(--bg-tertiary);
+  z-index: 10;
+  background: #f5f7fa;
   font-weight: 600;
-  color: var(--primary);
+  color: #1890ff;
   text-align: left;
   border-radius: 0;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 10px 16px; /* 调整上下内边距从6px到10px，与表格行保持一致 */
   font-size: var(--font-size-base);
+  border-bottom: 2px solid #e1e5e9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .table th:first-child {
   border-top-left-radius: 14px;
 }
 .table th:last-child {
   border-top-right-radius: 14px;
-}
-
-@media (max-width: 700px) {
-  .table {
-    min-width: 700px; /* 按实际列数调整，保证所有列都能显示 */
-  }
-  .table th,
-  .table td {
-    white-space: normal;   /* 允许内容换行 */
-    word-break: break-all; /* 长单词/URL也能断行 */
-  }
 }
 
 /* 状态标签统一样式 */
@@ -434,15 +551,118 @@
   color: var(--danger);
 }
 
+/* Events页面Message字段响应式换行样式 */
+.events-table .event-message {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  line-height: 1.4 !important;
+  max-width: 300px !important;
+  min-width: 200px !important;
+}
+
+/* 确保Events页面的Message列有足够的宽度，并覆盖全局样式 */
+.events-table td:nth-child(3) {
+  min-width: 200px !important;
+  max-width: 300px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* Events页面表格样式 */
+.event-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+.event-table th, .event-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-table td.event-message {
+  max-width: 220px;
+}
+
+/* Events页面特定样式 */
+.events-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.events-table th {
+  background: #f5f7fa;
+  font-weight: 600;
+  color: #1890ff;
+  text-align: left;
+  padding: 10px 16px; /* 调整上下内边距从8px到10px，与表格行保持一致 */
+  border-bottom: 2px solid #e1e5e9;
+  font-size: var(--font-size-base);
+}
+
+.events-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f5f7fa;
+  font-size: var(--font-size-sm);
+  vertical-align: top;
+}
+
+.events-table tbody tr:hover {
+  background-color: #f8faff;
+}
+
+/* Events页面事件类型标签样式 */
+.events-table .event-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-family: var(--font-main);
+}
+
+.events-table .event-type.event-type-normal {
+  background: #e6f7e6;
+  color: #52c41a;
+}
+
+.events-table .event-type.event-type-warning {
+  background: #ffeaea;
+  color: #ff4d4f;
+}
+
+/* Events页面消息列样式 */
+.events-table .event-message {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  line-height: 1.4 !important;
+  max-width: 300px !important;
+  min-width: 200px !important;
+  color: #444;
+}
+
+/* 确保Events页面的Message列有足够的宽度 */
+.events-table td:nth-child(3) {
+  min-width: 200px !important;
+  max-width: 300px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
 .overview-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 12px; /* 进一步减少间距从16px到12px */
+  margin-bottom: 12px; /* 进一步减少底部边距从16px到12px */
 }
 .overview-card, .overview-resource-card {
-  flex: 1 1 220px;
-  min-width: 220px;
+  flex: 1 1 180px; /* 进一步减少最小宽度从200px到180px */
+  min-width: 180px; /* 进一步减少最小宽度从200px到180px */
   max-width: 100%;
   box-sizing: border-box;
   background: var(--bg-secondary);
@@ -502,14 +722,14 @@
   font-family: 'Maple Mono', monospace;
 }
 .overview-resource-card {
-  min-width: 320px;
+  min-width: 280px; /* 进一步减少最小宽度从300px到280px */
   margin: 0;
-  padding: 18px 22px 14px 22px;
+  padding: 14px 18px 10px 18px; /* 进一步减少内边距从16px 20px 12px 20px到14px 18px 10px 18px */
 }
 .overview-resource-title {
   font-size: var(--font-size-xl);
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 2px; /* 进一步减少底部边距从4px到2px */
   color: #222;
 }
 .overview-resource-row {
@@ -517,7 +737,7 @@
   justify-content: space-between;
   align-items: baseline;
   font-size: var(--font-size-base);
-  margin-bottom: 2px;
+  margin-bottom: 0px; /* 进一步减少底部边距从1px到0px */
   color: #444;
 }
 .overview-resource-row .unit {
@@ -531,13 +751,13 @@
   margin-bottom: 4px;
 }
 .overview-bar-group {
-  margin: 10px 0 2px 0;
+  margin: 6px 0 0px 0; /* 进一步减少边距从8px 0 1px 0到6px 0 0px 0 */
 }
 .overview-bar-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2px;
+  margin-bottom: 0px; /* 进一步减少底部边距从1px到0px */
 }
 .overview-bar-label.requests {
   color: #1976d2;
@@ -564,7 +784,7 @@
   background: #f2f2f2;
   border-radius: 6px;
   position: relative;
-  margin-bottom: 4px;
+  margin-bottom: 1px; /* 进一步减少底部边距从2px到1px */
   overflow: hidden;
 }
 .overview-bar-req-single {
@@ -586,13 +806,13 @@
 .overview-bar-percent-row {
   font-size: var(--font-size-sm);
   color: #888;
-  margin-bottom: 10px;
+  margin-bottom: 6px; /* 进一步减少底部边距从8px到6px */
   margin-left: 0;
 }
 .overview-resource-available {
   font-size: var(--font-size-sm);
   color: #aaa;
-  margin-top: 4px;
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
 }
 .overview-event-card {
   max-height: none !important;
@@ -613,7 +833,7 @@
 .overview-event-desc {
   font-size: var(--font-size-sm);
   color: #888;
-  margin-bottom: 12px;
+  margin-bottom: 8px; /* 进一步减少底部边距从12px到8px */
 }
 .overview-event-item {
   display: flex;
@@ -637,6 +857,7 @@
   color: #1890ff;
   letter-spacing: 0.5px;
   font-family: 'Maple Mono', monospace;
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
 }
 .overview-event-type.status-failed {
   background: #ffeaea;
@@ -652,6 +873,7 @@
   font-size: var(--font-size-base);
   font-weight: 600;
   color: #222;
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
 }
 .overview-event-time {
   font-size: var(--font-size-sm);
@@ -669,23 +891,7 @@
   color: #aaa;
   margin-top: 2px;
 }
-@media (max-width: 900px) {
-  .overview-row {
-    gap: 12px;
-  }
-  .overview-card, .overview-resource-card {
-    min-width: 160px;
-    padding: 12px 10px 10px 10px;
-  }
-  .table-card {
-    padding: 16px 6px;
-    max-width: 100vw;
-  }
-  .table th, .table td {
-    padding: 8px 6px;
-    font-size: 14px;
-  }
-}
+
 .overview-main {
   width: 100%;
   max-width: none;
@@ -694,14 +900,14 @@
 }
 .overview-resource-event-row {
   display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 12px; /* 进一步减少间距从16px到12px */
+  margin-bottom: 12px; /* 进一步减少底部边距从16px到12px */
 }
 .overview-resource-col {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px; /* 进一步减少间距从16px到12px */
 }
 .overview-event-col {
   overflow: visible !important;
@@ -711,15 +917,7 @@
   flex-direction: column;
   justify-content: flex-start;
 }
-@media (max-width: 900px) {
-  .overview-resource-event-row {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .overview-event-col {
-    min-width: 0;
-  }
-}
+
 .overview-resource-summary {
   display: flex;
   gap: 24px;
@@ -756,12 +954,6 @@
   min-width: 140px;
   margin-bottom: 0;
 }
-@media (max-width: 700px) {
-  .overview-bar-flex-row {
-    flex-direction: column;
-    gap: 12px;
-  }
-}
 
 /* 主内容区卡片整体最大宽度限制并居中，两侧自动留白 */
 .overview-row,
@@ -774,8 +966,8 @@
 /* 主内容区网格布局 */
 .overview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); /* 进一步减少最小列宽从180px到160px */
+  gap: 12px; /* 进一步减少间距从16px到12px */
   width: 100%;
   align-items: stretch; /* 让所有卡片等高 */
 }
@@ -791,46 +983,101 @@
   overflow: visible;
   margin: 0 !important;
 }
-@media (max-width: 700px) {
-  .overview-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .overview-card,
-  .overview-event-card,
-  .overview-resource-card {
-    min-height: 0;
-    max-height: none;
-    height: auto;
-  }
-}
 
 .overview-row2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: stretch;
+  gap: 12px; /* 进一步减少间距从16px到12px */
+  align-items: start;
   width: 100%;
-  margin-bottom: 24px;
+  margin-bottom: 12px; /* 进一步减少底部边距从16px到12px */
 }
+
 .overview-left-col {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  height: 100%;
+  gap: 8px; /* 进一步减少间距从12px到8px */
+  height: auto;
 }
+
 .overview-event-col {
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
 }
-@media (max-width: 900px) {
-  .overview-row2 {
-    grid-template-columns: 1fr;
-  }
-  .overview-left-col, .overview-event-col {
-    height: auto;
-  }
+
+/* 强制右侧卡片高度与左侧列一致 */
+.overview-event-col:has(.overview-event-card[style*="height:"]) {
+  height: 100%;
+}
+
+/* 右侧事件卡片样式 */
+.overview-event-card.resource-summary-card {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin: 0 !important;
+  padding: 16px 20px 12px 20px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
+  font-family: 'Maple Mono', 'Inter', 'Consolas', 'Menlo', 'monospace', 'Arial', sans-serif;
+  box-sizing: border-box;
+  transition: height 0.2s ease;
+}
+
+/* 强制显示滚动条 - 使用更可靠的选择器 */
+.overview-event-card.resource-summary-card[style*="overflow-y: auto"],
+.overview-event-card.resource-summary-card[style*="height:"] {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* 强制高度同步 - 使用更高优先级 */
+.overview-event-card.resource-summary-card[style*="height:"] {
+  height: inherit !important;
+  min-height: inherit !important;
+  max-height: inherit !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* 确保右侧卡片能够正确显示滚动条 */
+.overview-event-card.resource-summary-card {
+  position: relative;
+}
+
+.overview-event-card.resource-summary-card[style*="overflow-y: auto"] {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* 自定义滚动条样式 - 隐藏滚动条 */
+.overview-event-card.resource-summary-card::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+.overview-event-card.resource-summary-card::-webkit-scrollbar-track {
+  display: none;
+}
+
+.overview-event-card.resource-summary-card::-webkit-scrollbar-thumb {
+  display: none;
+}
+
+.overview-event-card.resource-summary-card::-webkit-scrollbar-thumb:hover {
+  display: none;
+}
+
+/* Firefox 隐藏滚动条 */
+.overview-event-card.resource-summary-card {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .overview-card,
@@ -839,23 +1086,8 @@
   box-sizing: border-box;
 }
 
-@media (max-width: 1200px) {
-  .overview-grid, .overview-row2 {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
-.overview-event-card.resource-summary-card {
-  padding: 20px 24px 16px 24px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
-  font-family: 'Maple Mono', 'Inter', 'Consolas', 'Menlo', 'monospace', 'Arial', sans-serif;
-}
-
 .overview-event-item {
-  margin-bottom: 18px;
+  margin-bottom: 12px; /* 进一步减少底部边距从18px到12px */
   font-size: 15px;
   color: #222;
   line-height: 1.7;
@@ -890,12 +1122,14 @@
   font-weight: 600;
   letter-spacing: 0.5px;
   font-family: 'Maple Mono', monospace;
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
 }
 
 .overview-event-reason {
   color: #222;
   font-size: var(--font-size-base);
   font-weight: 600;
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
 }
 
 .overview-event-time {
@@ -908,8 +1142,8 @@
 .overview-event-message {
   color: #444;
   font-size: var(--font-size-base);
-  margin-bottom: 2px;
-  margin-top: 2px;
+  margin-bottom: 1px; /* 进一步减少底部边距从2px到1px */
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
   font-weight: 400;
 }
 
@@ -917,6 +1151,7 @@
   color: #888;
   font-size: var(--font-size-sm);
   font-weight: 400;
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
 }
 
 .event-table {
@@ -934,14 +1169,81 @@
   max-width: 220px;
 }
 
+/* 分页组件样式 */
 .table-pagination-area {
-  margin: 18px 0 0 0;
+  margin: 0px 0 0 0; /* 完全消除所有边距 */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
+  padding: 6px 16px;
   font-size: var(--font-size-base);
   color: #666;
+  background: var(--bg-secondary);
+  border-top: none;
+  min-height: 30px;
+  box-sizing: border-box;
+  transition: all 0.3s ease; /* 添加平滑过渡 */
+}
+
+/* 固定位置的分页组件 */
+.table-pagination-area.fixed {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  border-top: none;
+  backdrop-filter: blur(8px); /* 添加毛玻璃效果 */
+}
+
+/* 固定在页面底部的分页组件 */
+.table-pagination-area.fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 200px; /* 避开侧边栏 */
+  right: 0;
+  z-index: 15;
+  margin: 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+  border-top: none;
+  backdrop-filter: blur(12px); /* 更强的毛玻璃效果 */
+  background: rgba(255, 255, 255, 0.95); /* 半透明背景 */
+  transition: left 0.2s ease; /* 添加平滑过渡 */
+}
+
+/* 为固定分页添加特殊的强调样式 */
+.table-pagination-area.fixed-bottom .pagination-controls {
+  background: rgba(24, 144, 255, 0.05);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.table-pagination-area.fixed-bottom .pagination-btn {
+  background: #1890ff;
+  color: white;
+  border: 1px solid #1890ff;
+}
+
+.table-pagination-area.fixed-bottom .pagination-btn:hover:not(:disabled) {
+  background: #40a9ff;
+  border-color: #40a9ff;
+  color: white;
+}
+
+.table-pagination-area.fixed-bottom .pagination-btn:disabled {
+  background: #f5f5f5;
+  color: #d9d9d9;
+  border-color: #d9d9d9;
+}
+
+/* 当侧边栏折叠时，固定分页组件的适配 */
+.layout-root:has(.sider-menu.collapsed) .table-pagination-area.fixed-bottom {
+  left: 64px; /* 适应折叠后的侧边栏宽度 */
+}
+
+/* 兼容性：使用数据属性的方式（如果:has不支持） */
+.layout-root[data-sider-collapsed="true"] .table-pagination-area.fixed-bottom {
+  left: 64px;
 }
 
 .pagination-total {
@@ -964,8 +1266,8 @@
 }
 
 .pagination-btn {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border: 1px solid #d9d9d9;
   background: #fff;
   border-radius: 6px;
@@ -973,7 +1275,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: #666;
   transition: all 0.2s ease;
   padding: 0;
@@ -999,43 +1301,7 @@
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.cell-tooltip {
-  position: relative;
-  display: inline-block;
-  max-width: 100%;
-  vertical-align: middle;
-}
-
-.cell-tooltip .tooltip-content {
-  visibility: hidden;
-  opacity: 0;
-  width: max-content;
-  max-width: 420px;
-  background: #222;
-  color: #fff;
-  text-align: left;
-  border-radius: 8px;
-  padding: 10px 16px;
-  position: absolute;
-  z-index: 9999;
-  left: 50%;
-  top: 120%;
-  transform: translateX(-50%);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-  font-size: var(--font-size-base);
-  line-height: 1.7;
-  transition: opacity 0.18s;
-  word-break: break-all;
-  white-space: pre-line;
-  pointer-events: none;
-}
-
-.cell-tooltip:hover .tooltip-content {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-}
-
+/* 刷新按钮样式 */
 .btn-refresh {
   background: none;
   color: #2563eb;
@@ -1052,6 +1318,7 @@
   padding: 0;
   margin-right: 12px;
 }
+
 .btn-refresh:hover {
   background: none;
   color: #1746a2;
@@ -1065,29 +1332,32 @@
   padding: 0 8px;
   color: #2563eb;
 }
+
 .btn-refresh.no-bg:hover {
   background: none !important;
   color: #1746a2;
 }
 
+/* 概览页面卡片样式 */
 .overview-card {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 32px 28px;
+  padding: 28px 16px; /* 进一步减少内边距从32px 20px到28px 16px */
   border-radius: 24px;
   background: #fff;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.06);
-  min-height: 180px;
-  gap: 0 24px;
+  min-height: 160px; /* 进一步减少最小高度从180px到160px */
+  gap: 0 12px; /* 进一步减少间距从0 16px到0 12px */
 }
 
 .overview-card-icon-col {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 72px;
+  min-width: 56px; /* 进一步减少最小宽度从60px到56px */
   height: 100%;
+  min-height: 80px; /* 进一步减少最小高度从100px到80px */
 }
 
 .overview-icon {
@@ -1103,7 +1373,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px 0;
+  gap: 2px 0; /* 进一步减少间距从4px 0到2px 0 */
+  min-height: 80px; /* 进一步减少最小高度从100px到80px */
 }
 
 /* 概览页面卡片标题调整为12px */
@@ -1113,38 +1384,19 @@
   font-weight: 500;
 }
 
-/* 概览页面卡片数值调整为12px */
+/* 概览页面卡片数值调整为更大字体 */
 .overview-value {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  font-size: var(--font-size-icon-lg); /* 从var(--font-size-lg)改为var(--font-size-icon-lg) */
+  font-weight: 700; /* 从600改为700，让字体更粗 */
   color: #222;
   line-height: 1.1;
 }
 
 .overview-status {
-  margin-top: 4px;
+  margin-top: 2px; /* 进一步减少顶部边距从4px到2px */
 }
 
-.center-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 48px;
-}
-
-.cell-ellipsis {
-  display: inline-block;
-  /* max-width: 220px; 移除宽度限制 */
-  overflow: visible;     /* 改为visible，显示溢出内容 */
-  text-overflow: clip;   /* 改为clip，移除省略号 */
-  white-space: normal;   /* 改为normal，允许换行 */
-  vertical-align: middle;
-  cursor: pointer;
-}
-
-/* 只保留全局和极少数辅助信息的font-size */
+/* 全局样式 */
 html, body, #root {
   font-family: 'Maple Mono', monospace;
   font-size: var(--font-size-base);
@@ -1163,38 +1415,18 @@ html, body, #root {
   font-family: 'Maple Mono', monospace !important;
 }
 
-/* 只保留辅助信息/说明/事件内容为12px */
-.overview-card .overview-status,
-.resource-summary-info,
-.resource-summary-available,
-.overview-event-card .event-main,
-.overview-event-card .event-message,
-.overview-event-card .event-meta,
-.resource-block .value,
-.resource-block .percent {
-  font-size: var(--font-size-sm);
-  font-weight: 400;
-  color: #888;
-}
-
-/* logo、icon、特殊大标题可单独设置大字号 */
-.logo-area {
-  font-size: var(--font-size-2xl);
-  font-weight: 600;
-  color: #2563eb;
-  letter-spacing: 1px;
-}
 /* 概览页面主标题调整为16px */
 .overview-title-main {
   font-size: var(--font-size-lg);
   font-weight: 700;
   line-height: 40px;
   height: 40px;
-  margin-bottom: 20px;
+  margin-bottom: 12px; /* 进一步减少底部边距从16px到12px */
   color: #222;
   font-family: inherit;
   padding-left: 0;
 }
+
 .overview-card .overview-icon {
   font-size: var(--font-size-icon-lg);
 }
@@ -1207,10 +1439,16 @@ html, body, #root {
 .overview-card .overview-title,
 .resource-summary-title,
 .overview-event-card .resource-summary-title,
-.overview-card .overview-value,
 .summary-num,
 .table th {
   font-size: var(--font-size-base) !important;
+}
+
+/* 概览页面卡片数值使用更大字体 */
+.overview-card .overview-value {
+  font-size: var(--font-size-icon-lg) !important;
+  font-weight: 700 !important;
+  color: #222 !important;
 }
 
 /* 表格内容统一为12px */
@@ -1221,12 +1459,15 @@ html, body, #root {
 .table th:first-child {
   border-top-left-radius: 14px;
 }
+
 .table th:last-child {
   border-top-right-radius: 14px;
 }
+
 .table tr:last-child td:first-child {
   border-bottom-left-radius: 14px;
 }
+
 .table tr:last-child td:last-child {
   border-bottom-right-radius: 14px;
 }
@@ -1245,35 +1486,94 @@ html, body, #root {
   font-size: var(--font-size-sm);
 }
 
-.overview-card,
-.overview-event-card,
-.overview-resource-card,
-.table-card,
-.resource-summary-card,
-.info-card {
-  margin: 0 !important;
+/* 表格行分割线和优化 */
+.table td {
+  border-bottom: 1px solid #f5f7fa;
+  vertical-align: middle;
+  padding: 10px 16px; /* 增加上下内边距从6px到10px，让表格行不那么紧凑 */
 }
-.overview-grid,
-.overview-row,
-.overview-row2,
-.overview-resource-event-row {
-  gap: 24px;
-  margin-bottom: 24px;
+
+/* 表格行hover效果 */
+.table tbody tr:hover {
+  background-color: #f8faff;
 }
-.table-card {
-  margin-bottom: 24px !important;
+
+/* NamespaceSelect 组件样式优化 */
+.namespace-select {
+  position: relative;
+  display: inline-block;
 }
-@media (max-width: 700px) {
-  .overview-grid,
-  .overview-row,
-  .overview-row2,
-  .overview-resource-event-row {
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .table-card {
-    margin-bottom: 12px !important;
-  }
+
+.namespace-select select {
+  /* 移除浏览器默认样式 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  
+  /* 自定义样式 */
+  min-width: 150px;
+  height: 28px;
+  padding: 0 24px 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-main);
+  color: #333;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  vertical-align: middle;
+  line-height: normal;
+  
+  /* 自定义下拉箭头 */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 12px;
+}
+
+.namespace-select select:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.namespace-select select:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* 优化下拉选项样式 */
+.namespace-select select option {
+  padding: 8px 12px;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-main);
+  color: #333;
+  background: #fff;
+  border: none;
+  outline: none;
+}
+
+.namespace-select select option:hover {
+  background: #f0f8ff;
+  color: #1890ff;
+}
+
+.namespace-select select option:checked {
+  background: #1890ff;
+  color: #fff;
+}
+
+/* 移除下拉菜单滚动条 */
+.namespace-select select::-webkit-scrollbar {
+  display: none;
+}
+
+.namespace-select select {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
 /* 全局隐藏滚动条 */
@@ -1281,8 +1581,20 @@ html, body, #root, .main-content, .table-content-area, .sider-menu {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
 }
+
 html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .main-content::-webkit-scrollbar, .table-content-area::-webkit-scrollbar, .sider-menu::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
+}
+
+/* 右侧事件卡片滚动条隐藏 */
+.overview-event-card.resource-summary-card {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.overview-event-card.resource-summary-card::-webkit-scrollbar {
+  width: 0;
+  display: none;
 }
 
 /* 登出按钮字体统一为14px */
@@ -1304,73 +1616,22 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   outline: none;
   box-shadow: none;
 }
+
 .logout-btn:focus {
   outline: none;
   box-shadow: none;
 }
+
 .logout-btn:hover {
   background: var(--primary-light);
   color: var(--primary);
 }
+
 /* 登出按钮图标统一为14px */
 .logout-btn .icon {
   margin-right: 10px;
   font-size: var(--font-size-base);
   vertical-align: middle;
-}
-.overview-card .overview-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: #222;
-  margin-bottom: 2px;
-}
-.overview-card .overview-value {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 2px;
-}
-.overview-card .overview-status {
-  font-size: var(--font-size-sm);
-  font-weight: 400;
-  color: #888;
-  margin-top: 2px;
-}
-.resource-summary-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #222;
-}
-.resource-summary-info {
-  color: #666;
-  font-size: var(--font-size-sm);
-  margin-bottom: 8px;
-  font-family: inherit;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.summary-num {
-  font-weight: 600;
-  color: #222;
-  margin: 0 2px;
-  font-size: var(--font-size-lg);
-}
-.resource-summary-available {
-  color: #666;
-  font-size: var(--font-size-sm);
-  margin-top: 2px;
-  font-family: 'Maple Mono', 'Inter', 'Consolas', 'Menlo', 'monospace', 'Arial', sans-serif;
-}
-/* 事件卡片主要内容字号 */
-.overview-event-card .resource-summary-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.overview-event-card .event-main, .overview-event-card .event-message, .overview-event-card .event-meta {
-  font-size: var(--font-size-sm);
 }
 
 /* 卡片标题统一样式 */
@@ -1382,14 +1643,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   color: #222;
   margin-bottom: 4px;
 }
+
 /* 卡片主要数值统一样式 */
 .overview-card .overview-value,
 .summary-num {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-icon-lg); /* 从var(--font-size-2xl)改为var(--font-size-icon-lg) */
+  font-weight: 700;
   color: #222;
   margin-bottom: 2px;
 }
+
 /* 卡片辅助信息统一样式 */
 .overview-card .overview-status,
 .resource-summary-info,
@@ -1402,60 +1665,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   font-size: 12px;
   font-weight: 400;
   color: #888;
-}
-.overview-title-main {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  line-height: 40px;
-  height: 40px;
-  margin-bottom: 20px;
-  color: #222;
-  font-family: inherit;
-  padding-left: 0;
-}
-
-.overview-card, .resource-summary-card, .overview-event-card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
-  padding: 16px;
-  min-width: 220px;
-  min-height: 80px;
-}
-
-.overview-card-icon-col {
-  min-width: 48px;
-  margin-right: 12px;
-}
-.overview-card-content-col {
-  gap: 4px 0;
-}
-
-.resource-summary-info,
-.resource-summary-available,
-.overview-card .overview-status,
-.overview-event-card .event-main,
-.overview-event-card .event-message,
-.overview-event-card .event-meta,
-.resource-block .value,
-.resource-block .percent {
-  font-size: 12px;
-  font-weight: 400;
-  color: #bbb;
-}
-.resource-summary-row {
-  margin-bottom: 4px;
-}
-.resource-block .label.requests {
-  color: #2563eb;
-  font-weight: 700;
-}
-.resource-block .label.limits {
-  color: #ff9800;
-  font-weight: 700;
-}
-.progress-bar {
-  height: 9px;
 }
 
 /* 事件卡片标签更圆润更淡 */
@@ -1478,6 +1687,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   background: #ffeaea;
   color: #ff4d4f;
 }
+
 /* 事件内容与时间同行，时间靠右 */
 .overview-event-item {
   display: flex;
@@ -1487,33 +1697,29 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   padding: 10px 0 8px 0;
   gap: 8px;
 }
+
 .overview-event-main {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 1px; /* 进一步减少底部边距从2px到1px */
 }
+
 .overview-event-time {
   font-size: var(--font-size-sm);
   color: #bbb;
   margin-left: 12px;
   white-space: nowrap;
   font-weight: 400;
+  margin-top: 1px; /* 进一步减少顶部边距从2px到1px */
 }
+
 /* 侧边栏分隔线加深 */
 .sider-menu {
   border-right: 1.5px solid #e0e0e0;
-}
-/* 响应式优化 */
-@media (max-width: 900px) {
-  .overview-card, .resource-summary-card, .overview-event-card {
-    padding: 8px;
-    border-radius: 8px;
-  }
-  .overview-title-main {
-    font-size: var(--font-size-sm);
-    margin-bottom: 10px;
-  }
 }
 
 /* 资源名称链接样式 */
@@ -1525,57 +1731,159 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   transition: all 0.2s ease !important;
 }
 
-.resource-name-link:hover {
-  color: #1d4ed8 !important;
-  text-decoration: none !important;
-  background: rgba(37, 99, 235, 0.1) !important;
-  border-radius: 4px !important;
-  padding: 2px 4px !important;
-  margin: -2px -4px !important;
+/* Events页面表格列宽优化 */
+.events-table th:nth-child(1), .events-table td:nth-child(1) {
+  width: 80px; /* Type列 */
+  min-width: 80px;
+  max-width: 80px;
 }
 
-.resource-name-link:active {
-  transform: scale(0.98) !important;
+.events-table th:nth-child(2), .events-table td:nth-child(2) {
+  width: 120px; /* Reason列 */
+  min-width: 120px;
+  max-width: 120px;
 }
 
-/* 轻量级Tooltip样式 */
-.light-tooltip {
-  display: inline-block;
+.events-table th:nth-child(3), .events-table td:nth-child(3) {
+  width: 300px; /* Message列 */
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.events-table th:nth-child(4), .events-table td:nth-child(4) {
+  width: 150px; /* Name列 */
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.events-table th:nth-child(5), .events-table td:nth-child(5) {
+  width: 120px; /* Namespace列 */
+  min-width: 100px;
+  max-width: 150px;
+}
+
+.events-table th:nth-child(6), .events-table td:nth-child(6),
+.events-table th:nth-child(7), .events-table td:nth-child(7) {
+  width: 140px; /* FirstSeen和LastSeen列 */
+  min-width: 120px;
+  max-width: 160px;
+}
+
+.events-table th:nth-child(8), .events-table td:nth-child(8) {
+  width: 100px; /* Duration列 */
+  min-width: 80px;
+  max-width: 120px;
+}
+
+.events-table th:nth-child(9), .events-table td:nth-child(9) {
+  width: 80px; /* Count列 */
+  min-width: 60px;
+  max-width: 100px;
+}
+
+/* Events页面表格容器优化 */
+.events-table {
   width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* 固定表格布局 */
 }
 
-/* Events页面Message字段响应式换行样式 */
-.events-table .event-message {
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  word-break: break-all !important;
-  line-height: 1.4 !important;
-  max-width: 300px !important;
-  min-width: 200px !important;
+/* Events页面表格内容区域优化 */
+.table-card .table-content-area {
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
-/* 确保Events页面的Message列有足够的宽度，并覆盖全局样式 */
-.events-table td:nth-child(3) {
-  min-width: 200px !important;
-  max-width: 300px !important;
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
+/* Events页面表格行优化 */
+.events-table tbody tr {
+  transition: background-color 0.2s ease;
 }
 
-/* 小屏幕下进一步优化 */
-@media (max-width: 768px) {
-  .events-table .event-message {
-    max-width: 250px !important;
-    min-width: 150px !important;
-    font-size: 11px !important;
-  }
-  
-  .events-table td:nth-child(3) {
-    min-width: 150px !important;
-    max-width: 250px !important;
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-  }
+.events-table tbody tr:hover {
+  background-color: #f8faff;
+}
+
+/* Events页面表格单元格内容优化 */
+.events-table td {
+  padding: 10px 16px; /* 调整上下内边距从8px到10px，与其他表格保持一致 */
+  border-bottom: 1px solid #f5f7fa;
+  font-size: var(--font-size-sm);
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Events页面整体布局优化 */
+.events-page {
+  width: 100%;
+  height: 100%;
+}
+
+/* Events页面标题区域优化 */
+.events-page .overview-title-main {
+  margin-bottom: 20px;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: #222;
+}
+
+/* Events页面搜索区域优化 */
+.events-page .search-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* Events页面表格区域优化 */
+.events-page .table-area {
+  margin-bottom: 16px;
+}
+
+/* Events页面分页区域优化 */
+.events-page .pagination-area {
+  margin-top: 16px;
+}
+
+/* Events页面表格响应式优化 */
+.events-table {
+  min-width: 1200px; /* 确保所有列都能显示 */
+}
+
+/* Events页面表格滚动优化 */
+.table-content-area {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 140px); /* 进一步减少最大高度限制，让表格内容区尽可能大 */
+  min-height: 200px; /* 添加最小高度，确保表格内容能够正确显示 */
+}
+
+/* Events页面表格头部固定 */
+.events-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f5f7fa;
+}
+
+/* Events页面表格行分割线 */
+.events-table tbody tr {
+  border-bottom: 1px solid #f5f7fa;
+}
+
+.events-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* 概览页面卡片间距优化 */
+.overview-grid,
+.overview-row,
+.overview-row2,
+.overview-resource-event-row {
+  gap: 12px; /* 进一步减少间距从16px到12px */
+  margin-bottom: 12px; /* 进一步减少底部边距从16px到12px */
+}
+
+.table-card {
+  margin-bottom: 8px !important; /* 设置8px空白，让表格和分页组件之间有适当的间距 */
 }

@@ -2,8 +2,8 @@
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
-  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
+  padding: 16px 20px 12px 20px;
+  margin-bottom: 0;
   width: 100%;
   max-width: 980px;
   margin-left: auto;
@@ -14,14 +14,14 @@
 .resource-summary-title {
   font-size: var(--font-size-lg);
   font-weight: 700;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 8px;
   color: var(--text-primary);
 }
 
 .resource-summary-info {
   color: var(--text-tertiary);
   font-size: var(--font-size-sm);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 8px;
   font-family: inherit;
   white-space: nowrap;
   overflow: hidden;
@@ -36,11 +36,11 @@
 
 .resource-summary-row {
   display: flex;
-  gap: var(--spacing-xl);
+  gap: 20px;
   width: 100%;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 8px;
 }
 
 .resource-block {
@@ -53,7 +53,7 @@
   justify-content: space-between;
   align-items: baseline;
   font-size: var(--font-size-sm);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 6px;
 }
 
 .label.requests {
@@ -75,9 +75,9 @@
 .progress-bar {
   background: #f3f4f6;
   border-radius: var(--radius-sm);
-  height: 7px;
+  height: 6px;
   width: 100%;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 6px;
   position: relative;
   overflow: hidden;
 }
@@ -97,24 +97,13 @@
 .percent {
   color: #6b7280;
   font-size: var(--font-size-sm);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 6px;
   text-align: left;
 }
 
 .resource-summary-available {
   color: var(--text-tertiary);
   font-size: var(--font-size-sm);
-  margin-top: var(--spacing-sm);
+  margin-top: 6px;
   font-family: var(--font-main);
-}
-
-@media (max-width: 600px) {
-  .resource-summary-card {
-    padding: 10px 4px 8px 4px;
-    max-width: 100%;
-  }
-  .resource-summary-row {
-    flex-direction: column;
-    gap: 12px;
-  }
 } 

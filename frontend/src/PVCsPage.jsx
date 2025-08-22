@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import CommonTable from './CommonTable';
-import { FaSync } from 'react-icons/fa';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import NamespaceSelect from './components/NamespaceSelect';
+import PageHeader from './components/PageHeader';
 import ResourceDetailModal from './components/ResourceDetailModal';
-import { SEARCH_PLACEHOLDER, PAGE_SIZE } from './constants';
+import { SEARCH_PLACEHOLDER, EMPTY_TEXT, PAGE_SIZE } from './constants';
 import { useFilterRows } from './utils';
 import Pagination from './Pagination';
 
-export default function PVCsPage() {
+export default function PVCsPage({ collapsed, onToggleCollapsed }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [namespace, setNamespace] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
@@ -22,18 +24,39 @@ export default function PVCsPage() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(`/api/pvcs?limit=${pageSize}&offset=${(page-1)*pageSize}`)
+    const params = new URLSearchParams({
+      limit: pageSize.toString(),
+      offset: ((page-1)*pageSize).toString(),
+    });
+    
+    if (namespace) {
+      params.append('namespace', namespace);
+    }
+    
+    fetch(`/api/pvcs?${params}`)
       .then(res => res.json())
       .then(res => {
-        setData(res.data || res);
+        // 确保数据始终是数组
+        const dataList = res.data || res || [];
+        setData(Array.isArray(dataList) ? dataList : []);
         setPageMeta(res.page || {});
       })
+      .catch(error => {
+        console.error('Failed to fetch PVCs:', error);
+        setData([]); // 出错时设置为空数组
+        setPageMeta({});
+      })
       .finally(() => setLoading(false));
-  }, [page, pageSize]);
+  }, [page, pageSize, namespace]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // 当namespace变化时重置到第一页
+  useEffect(() => {
+    setPage(1);
+  }, [namespace]);
 
   const filteredRows = useFilterRows(data, ['namespace', 'name', 'status'], search);
 
@@ -49,14 +72,23 @@ export default function PVCsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+      <PageHeader
+        title="PersistentVolumeClaims"
+        collapsed={collapsed}
+        onToggleCollapsed={onToggleCollapsed}
+      >
+        <NamespaceSelect
+          value={namespace}
+          onChange={setNamespace}
+          placeholder="All Namespaces"
+        />
         <SearchInput
           placeholder={SEARCH_PLACEHOLDER}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         <RefreshButton onClick={fetchData} />
-      </div>
+      </PageHeader>
       <CommonTable
         columns={[
           { 
@@ -75,25 +107,7 @@ export default function PVCsPage() {
             }
           },
           { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
-          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
-              if (isTooltip) return val;
-              
-              const isHealthy = val === 'Running' || val === 'Succeeded' || val === 'Ready' || val === 'Healthy' || val === 'Normal' || val === 'Active' || val === 'Bound';
-              const isFailed = val === 'Failed' || val === 'Error' || val === 'CrashLoopBackOff';
-              const isPending = val === 'Pending' || val === 'ContainerCreating' || val === 'PodInitializing';
-              
-              let statusClass = 'status-running';
-              if (isHealthy) {
-                statusClass = 'status-ready';
-              } else if (isFailed) {
-                statusClass = 'status-failed';
-              } else if (isPending) {
-                statusClass = 'status-pending';
-              }
-              
-              return <span className={`status-tag ${statusClass}`}>{val}</span>;
-            }
-          },
+          { title: 'State', dataIndex: 'status', render: (val, row, i, isTooltip) => isTooltip ? val : <span className={`status-tag ${val === 'Bound' ? 'status-ready' : 'status-running'}`}>{val}</span> },
           { title: 'Volume', dataIndex: 'volumeName', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Capacity', dataIndex: 'capacity', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'AccessMode', dataIndex: 'accessMode', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
@@ -103,13 +117,14 @@ export default function PVCsPage() {
         currentPage={page}
         onPageChange={setPage}
         total={pageMeta?.total || filteredRows.length}
-        emptyText="No data"
+        emptyText={EMPTY_TEXT}
       />
       <Pagination
         currentPage={page}
         total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+        fixedBottom={true}
       />
 
       {/* 资源详情模态框 */}

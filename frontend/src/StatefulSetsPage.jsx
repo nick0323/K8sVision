@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import CommonTable from './CommonTable';
-import { FaSync } from 'react-icons/fa';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import NamespaceSelect from './components/NamespaceSelect';
+import PageHeader from './components/PageHeader';
 import ResourceDetailModal from './components/ResourceDetailModal';
-import { SEARCH_PLACEHOLDER, PAGE_SIZE } from './constants';
+import { SEARCH_PLACEHOLDER, EMPTY_TEXT, PAGE_SIZE } from './constants';
 import { useFilterRows } from './utils';
 import Pagination from './Pagination';
 
-export default function StatefulSetsPage() {
+export default function StatefulSetsPage({ collapsed, onToggleCollapsed }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [namespace, setNamespace] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
@@ -22,18 +24,39 @@ export default function StatefulSetsPage() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(`/api/statefulsets?limit=${pageSize}&offset=${(page-1)*pageSize}`)
+    const params = new URLSearchParams({
+      limit: pageSize.toString(),
+      offset: ((page-1)*pageSize).toString(),
+    });
+    
+    if (namespace) {
+      params.append('namespace', namespace);
+    }
+    
+    fetch(`/api/statefulsets?${params}`)
       .then(res => res.json())
       .then(res => {
-        setData(res.data || res);
+        // 确保数据始终是数组
+        const dataList = res.data || res || [];
+        setData(Array.isArray(dataList) ? dataList : []);
         setPageMeta(res.page || {});
       })
+      .catch(error => {
+        console.error('Failed to fetch StatefulSets:', error);
+        setData([]); // 出错时设置为空数组
+        setPageMeta({});
+      })
       .finally(() => setLoading(false));
-  }, [page, pageSize]);
+  }, [page, pageSize, namespace]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // 当namespace变化时重置到第一页
+  useEffect(() => {
+    setPage(1);
+  }, [namespace]);
 
   const filteredRows = useFilterRows(data, ['namespace', 'name', 'status'], search);
 
@@ -49,14 +72,23 @@ export default function StatefulSetsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+      <PageHeader
+        title="StatefulSets"
+        collapsed={collapsed}
+        onToggleCollapsed={onToggleCollapsed}
+      >
+        <NamespaceSelect
+          value={namespace}
+          onChange={setNamespace}
+          placeholder="All Namespaces"
+        />
         <SearchInput
           placeholder={SEARCH_PLACEHOLDER}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         <RefreshButton onClick={fetchData} />
-      </div>
+      </PageHeader>
       <CommonTable
         columns={[
           { 
@@ -77,38 +109,31 @@ export default function StatefulSetsPage() {
           { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Available', dataIndex: 'availableReplicas', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Desired', dataIndex: 'desiredReplicas', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
-          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
+          { title: 'State', dataIndex: 'status', render: (val, row, i, isTooltip) => {
               if (isTooltip) return val;
-              
-              const isHealthy = val === 'Running' || val === 'Succeeded' || val === 'Ready' || val === 'Healthy' || val === 'Normal' || val === 'Active' || val === 'Bound';
-              const isFailed = val === 'Failed' || val === 'Error' || val === 'CrashLoopBackOff';
-              const isPending = val === 'Pending' || val === 'ContainerCreating' || val === 'PodInitializing';
-              
+              const isHealthy = val === 'Healthy';
+              const isPartial = val === 'PartialAvailable';
+              const isAbnormal = val === 'Abnormal';
               let statusClass = 'status-running';
-              if (isHealthy) {
-                statusClass = 'status-ready';
-              } else if (isFailed) {
-                statusClass = 'status-failed';
-              } else if (isPending) {
-                statusClass = 'status-pending';
-              }
-              
+              if (isHealthy) statusClass = 'status-ready';
+              else if (isPartial) statusClass = 'status-pending';
+              else if (isAbnormal) statusClass = 'status-failed';
               return <span className={`status-tag ${statusClass}`}>{val}</span>;
-            }
-          },
+            } },
         ]}
         data={filteredRows}
         pageSize={pageSize}
         currentPage={page}
         onPageChange={setPage}
         total={pageMeta?.total || filteredRows.length}
-        emptyText="No data"
+        emptyText={EMPTY_TEXT}
       />
       <Pagination
         currentPage={page}
         total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+        fixedBottom={true}
       />
 
       {/* 资源详情模态框 */}

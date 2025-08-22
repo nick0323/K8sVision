@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import CommonTable from './CommonTable';
-import { FaSync } from 'react-icons/fa';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import PageHeader from './components/PageHeader';
 import ResourceDetailModal from './components/ResourceDetailModal';
-import { SEARCH_PLACEHOLDER, PAGE_SIZE } from './constants';
+import { SEARCH_PLACEHOLDER, EMPTY_TEXT, PAGE_SIZE } from './constants';
 import { useFilterRows } from './utils';
 import Pagination from './Pagination';
 
-export default function PVsPage() {
+export default function PVsPage({ collapsed, onToggleCollapsed }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -49,14 +49,20 @@ export default function PVsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-        <SearchInput
-          placeholder={SEARCH_PLACEHOLDER}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        <RefreshButton onClick={fetchData} />
-      </div>
+      <PageHeader
+        title="PersistentVolumes"
+        onToggleCollapsed={onToggleCollapsed}
+        collapsed={collapsed}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <SearchInput
+            placeholder={SEARCH_PLACEHOLDER}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <RefreshButton onClick={fetchData} />
+        </div>
+      </PageHeader>
       <CommonTable
         columns={[
           { 
@@ -74,25 +80,7 @@ export default function PVsPage() {
               );
             }
           },
-          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
-              if (isTooltip) return val;
-              
-              const isHealthy = val === 'Running' || val === 'Succeeded' || val === 'Ready' || val === 'Healthy' || val === 'Normal' || val === 'Active' || val === 'Bound';
-              const isFailed = val === 'Failed' || val === 'Error' || val === 'CrashLoopBackOff';
-              const isPending = val === 'Pending' || val === 'ContainerCreating' || val === 'PodInitializing';
-              
-              let statusClass = 'status-running';
-              if (isHealthy) {
-                statusClass = 'status-ready';
-              } else if (isFailed) {
-                statusClass = 'status-failed';
-              } else if (isPending) {
-                statusClass = 'status-pending';
-              }
-              
-              return <span className={`status-tag ${statusClass}`}>{val}</span>;
-            }
-          },
+          { title: 'State', dataIndex: 'status', render: (val, row, i, isTooltip) => isTooltip ? val : <span className={`status-tag ${val === 'Bound' ? 'status-ready' : 'status-running'}`}>{val}</span> },
           { title: 'Capacity', dataIndex: 'capacity', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'AccessMode', dataIndex: 'accessMode', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'StorageClass', dataIndex: 'storageClass', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
@@ -104,13 +92,14 @@ export default function PVsPage() {
         currentPage={page}
         onPageChange={setPage}
         total={pageMeta?.total || filteredRows.length}
-        emptyText="No data"
+        emptyText={EMPTY_TEXT}
       />
       <Pagination
         currentPage={page}
         total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+        fixedBottom={true}
       />
 
       {/* 资源详情模态框 */}

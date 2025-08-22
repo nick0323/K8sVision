@@ -1,23 +1,66 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
 import InfoCard from './InfoCard';
 import ResourceSummary from './ResourceSummary';
+import PageHeader from './components/PageHeader';
 import { formatDateTime, formatRelativeTime, useFetch } from './utils';
 import { FaChartPie, FaDesktop, FaCubes, FaProjectDiagram } from 'react-icons/fa';
 import { LuSquareDashed } from 'react-icons/lu';
 import { LOADING_TEXT, ERROR_TEXT, EMPTY_TEXT } from './constants';
 
-export default function OverviewPage() {
-  // const [data, setData] = useState({});
-  // const [loading, setLoading] = useState(false);
+export default function OverviewPage({ collapsed, onToggleCollapsed }) {
   const { data, loading, error } = useFetch('/api/overview');
   const safeData = data || {};
   const leftColRef = useRef(null);
   const [leftColHeight, setLeftColHeight] = useState(undefined);
-  useEffect(() => {
+  
+  // 计算左侧列高度的函数
+  const calculateHeight = useCallback(() => {
     if (leftColRef.current) {
-      setLeftColHeight(leftColRef.current.offsetHeight);
+      // 使用 requestAnimationFrame 确保在下一帧计算
+      requestAnimationFrame(() => {
+        const leftCol = leftColRef.current;
+        if (leftCol) {
+          const totalHeight = leftCol.scrollHeight;
+          setLeftColHeight(totalHeight);
+          
+          // 设置CSS变量，确保右侧卡片能够使用
+          document.documentElement.style.setProperty('--left-col-height', `${totalHeight}px`);
+          
+          // 直接设置右侧卡片的高度
+          const rightCard = document.querySelector('.overview-event-card.resource-summary-card');
+          if (rightCard) {
+            rightCard.style.setProperty('height', `${totalHeight}px`, 'important');
+            rightCard.style.setProperty('overflow-y', 'auto', 'important');
+            rightCard.style.setProperty('min-height', `${totalHeight}px`, 'important');
+            rightCard.style.setProperty('max-height', `${totalHeight}px`, 'important');
+          }
+        }
+      });
     }
-  }, [data, loading, error]);
+  }, []);
+
+  useEffect(() => {
+    // 延迟计算，确保DOM完全渲染
+    const timer = setTimeout(calculateHeight, 200);
+    return () => clearTimeout(timer);
+  }, [data, loading, error, calculateHeight]);
+
+  // 使用useLayoutEffect确保在DOM更新后立即计算高度
+  useLayoutEffect(() => {
+    if (data && !loading && !error) {
+      calculateHeight();
+    }
+  }, [data, loading, error, calculateHeight]);
+
+  // 监听窗口大小变化
+  useEffect(() => {
+    const handleResize = () => {
+      setTimeout(calculateHeight, 100);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [calculateHeight]);
 
   return (
     <div>
@@ -25,7 +68,13 @@ export default function OverviewPage() {
       {error && <div style={{textAlign:'center',color:'red',padding:'32px 0'}}>{ERROR_TEXT}{error}</div>}
       {!loading && !error && (
         <>
-          <div className="overview-title-main">Overview</div>
+          <PageHeader
+            title="Overview"
+            collapsed={collapsed}
+            onToggleCollapsed={onToggleCollapsed}
+          >
+            {/* Overview页面没有右侧控件，所以children为空 */}
+          </PageHeader>
           <div className="overview-grid">
             <InfoCard
               icon={<FaDesktop />}
@@ -68,10 +117,10 @@ export default function OverviewPage() {
             <div
               className="overview-left-col"
               ref={leftColRef}
-              style={leftColHeight ? { minHeight: leftColHeight, display: 'flex', flexDirection: 'column', gap: '16px' } : {}}
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
             >
               <ResourceSummary style={{ flex: 1 }}
-                title="CPU Resources"
+                title="CPU"
                 requestsValue={safeData.cpuRequests?.toFixed(1) || 0}
                 requestsPercent={((safeData.cpuRequests/safeData.cpuCapacity)*100 || 0).toFixed(1)}
                 limitsValue={safeData.cpuLimits?.toFixed(1) || 0}
@@ -81,7 +130,7 @@ export default function OverviewPage() {
                 unit="cores"
               />
               <ResourceSummary style={{ flex: 1 }}
-                title="Memory Resources"
+                title="Memory"
                 requestsValue={safeData.memoryRequests?.toFixed(1) || 0}
                 requestsPercent={((safeData.memoryRequests/safeData.memoryCapacity)*100 || 0).toFixed(1)}
                 limitsValue={safeData.memoryLimits?.toFixed(1) || 0}
@@ -95,11 +144,14 @@ export default function OverviewPage() {
               <div
                 className="overview-event-card resource-summary-card"
                 style={{
-                  minHeight: leftColHeight,
-                  overflowY: 'auto',
+                  height: leftColHeight ? `${leftColHeight}px !important` : 'auto',
+                  overflowY: leftColHeight ? 'auto !important' : 'visible',
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
+                  minHeight: leftColHeight ? `${leftColHeight}px !important` : 'auto',
+                  maxHeight: leftColHeight ? `${leftColHeight}px !important` : 'none',
+                  boxSizing: 'border-box',
                 }}
               >
                 <div className="resource-summary-title">Recent Events</div>

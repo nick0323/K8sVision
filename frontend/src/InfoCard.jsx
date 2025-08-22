@@ -9,7 +9,7 @@ export default function InfoCard({ icon, title, value, status, children }) {
           <span className="overview-icon">{icon}</span>
         </div>
       )}
-      <div className="overview-card-content-col" style={{minHeight: 90, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+      <div className="overview-card-content-col" style={{minHeight: 110, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
         <div className="overview-title">{title}</div>
         {value !== undefined && (
           <div className="overview-value">{value}</div>

@@ -3,15 +3,18 @@ import CommonTable from './CommonTable';
 import { FaSync } from 'react-icons/fa';
 import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
+import NamespaceSelect from './components/NamespaceSelect';
+import PageHeader from './components/PageHeader';
 import ResourceDetailModal from './components/ResourceDetailModal';
 import { SEARCH_PLACEHOLDER, EMPTY_TEXT, PAGE_SIZE } from './constants';
 import { useFilterRows } from './utils';
 import Pagination from './Pagination';
 
-export default function PodsPage() {
+export default function PodsPage({ collapsed, onToggleCollapsed }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [namespace, setNamespace] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
@@ -22,18 +25,39 @@ export default function PodsPage() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(`/api/pods?limit=${pageSize}&offset=${(page-1)*pageSize}`)
+    const params = new URLSearchParams({
+      limit: pageSize.toString(),
+      offset: ((page-1)*pageSize).toString(),
+    });
+    
+    if (namespace) {
+      params.append('namespace', namespace);
+    }
+    
+    fetch(`/api/pods?${params}`)
       .then(res => res.json())
       .then(res => {
-        setData(res.data || res);
+        // 确保数据始终是数组
+        const dataList = res.data || res || [];
+        setData(Array.isArray(dataList) ? dataList : []);
         setPageMeta(res.page || {});
       })
+      .catch(error => {
+        console.error('Failed to fetch Pods:', error);
+        setData([]); // 出错时设置为空数组
+        setPageMeta({});
+      })
       .finally(() => setLoading(false));
-  }, [page, pageSize]);
+  }, [page, pageSize, namespace]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // 当namespace变化时重置到第一页
+  useEffect(() => {
+    setPage(1);
+  }, [namespace]);
 
   const filteredRows = useFilterRows(data, ['namespace', 'name', 'status', 'podIP', 'nodeName'], search);
 
@@ -49,14 +73,23 @@ export default function PodsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+      <PageHeader
+        title="Pods"
+        collapsed={collapsed}
+        onToggleCollapsed={onToggleCollapsed}
+      >
+        <NamespaceSelect
+          value={namespace}
+          onChange={setNamespace}
+          placeholder="All Namespaces"
+        />
         <SearchInput
           placeholder={SEARCH_PLACEHOLDER}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         <RefreshButton onClick={fetchData} />
-      </div>
+      </PageHeader>
       <CommonTable
         columns={[
           { 
@@ -75,25 +108,7 @@ export default function PodsPage() {
             }
           },
           { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
-          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
-              if (isTooltip) return val;
-              
-              const isHealthy = val === 'Running' || val === 'Succeeded' || val === 'Ready' || val === 'Healthy' || val === 'Normal' || val === 'Active' || val === 'Bound';
-              const isFailed = val === 'Failed' || val === 'Error' || val === 'CrashLoopBackOff';
-              const isPending = val === 'Pending' || val === 'ContainerCreating' || val === 'PodInitializing';
-              
-              let statusClass = 'status-running';
-              if (isHealthy) {
-                statusClass = 'status-ready';
-              } else if (isFailed) {
-                statusClass = 'status-failed';
-              } else if (isPending) {
-                statusClass = 'status-pending';
-              }
-              
-              return <span className={`status-tag ${statusClass}`}>{val}</span>;
-            }
-          },
+          { title: 'State', dataIndex: 'status', render: (val, row, i, isTooltip) => isTooltip ? val : <span className={`status-tag ${val === 'Running' || val === 'Succeeded' || val === 'Ready' || val === 'Healthy' || val === 'Normal' ? 'status-ready' : (val === 'Failed' || val === 'Error' || val === 'CrashLoopBackOff' ? 'status-failed' : (val === 'Pending' || val === 'ContainerCreating' || val === 'PodInitializing' ? 'status-pending' : 'status-running'))}`}>{val}</span> },
           { title: 'CPUUsage', dataIndex: 'cpuUsage', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'MemoryUsage', dataIndex: 'memoryUsage', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'PodIP', dataIndex: 'podIP', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
@@ -105,12 +120,14 @@ export default function PodsPage() {
         onPageChange={setPage}
         total={pageMeta?.total || filteredRows.length}
         emptyText={EMPTY_TEXT}
+        hasFixedPagination={false}
       />
       <Pagination
         currentPage={page}
         total={pageMeta?.total || filteredRows.length}
         pageSize={pageSize}
         onPageChange={setPage}
+        fixedBottom={true}
       />
 
       {/* 资源详情模态框 */}
