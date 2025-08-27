@@ -1,3 +1,46 @@
+/* 全局滚动条隐藏 - 最高优先级，放在最前面 */
+html, body, #root, * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+#root::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+#root::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+#root::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+#root::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  display: none !important;
+}
+
 /* 主色调 */
 :root {
   /* 现有变量 */
@@ -478,6 +521,11 @@
 }
 
 /* 状态标签变体 */
+.status-active {
+  background: #e6f7e6;
+  color: var(--success);
+}
+
 .status-ready {
   display: inline-block;
   padding: var(--spacing-xs) var(--spacing-sm);
@@ -1080,6 +1128,62 @@
   -ms-overflow-style: none;
 }
 
+/* 隐藏所有详情卡片的滚动条 - 使用更高优先级 */
+.detail-card-content,
+.detail-card,
+.resource-summary-card,
+.overview-event-card {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.detail-card-content::-webkit-scrollbar,
+.detail-card::-webkit-scrollbar,
+.resource-summary-card::-webkit-scrollbar,
+.overview-event-card::-webkit-scrollbar {
+  width: 0 !important;
+  display: none !important;
+}
+
+.detail-card-content::-webkit-scrollbar-track,
+.detail-card::-webkit-scrollbar-track,
+.resource-summary-card::-webkit-scrollbar-track,
+.overview-event-card::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+.detail-card-content::-webkit-scrollbar-thumb,
+.detail-card::-webkit-scrollbar-thumb,
+.resource-summary-card::-webkit-scrollbar-thumb,
+.overview-event-card::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+.detail-card-content::-webkit-scrollbar-thumb:hover,
+.detail-card::-webkit-scrollbar-thumb:hover,
+.resource-summary-card::-webkit-scrollbar-thumb:hover,
+.overview-event-card::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+}
+
+/* 额外确保所有可能的滚动条都被隐藏 */
+*::-webkit-scrollbar {
+  width: 0 !important;
+  display: none !important;
+}
+
+*::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+}
+
 .overview-card,
 .resource-summary-card,
 .overview-event-card {
@@ -1251,6 +1355,45 @@
   text-align: left;
   color: #666;
   font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 每页行数选择器样式 */
+.pagination-separator {
+  color: #d9d9d9;
+  margin: 0 4px;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+  font-size: var(--font-size-sm);
+}
+
+.page-size-select {
+  padding: 2px 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: #fff;
+  color: #666;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 50px;
+}
+
+.page-size-select:hover {
+  border-color: #1890ff;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
 .pagination-info {
@@ -1811,6 +1954,18 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   vertical-align: top;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  white-space: normal; /* 允许换行 */
+  line-height: 1.4; /* 设置行高 */
+}
+
+/* Events页面Message列特殊处理 - 支持换行 */
+.events-table td:nth-child(3) { /* Message列 */
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  line-height: 1.4 !important;
+  max-width: 300px !important;
+  min-width: 200px !important;
 }
 
 /* Events页面整体布局优化 */
@@ -1848,6 +2003,25 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
 /* Events页面表格响应式优化 */
 .events-table {
   min-width: 1200px; /* 确保所有列都能显示 */
+  table-layout: auto; /* 使用自动表格布局，允许内容换行 */
+}
+
+/* Events页面表格优化 - 确保所有列都能显示 */
+.table-card:has(.table th[style*="width"]) {
+  overflow-x: auto;
+}
+
+.table-card:has(.table th[style*="width"]) .table-content-area {
+  overflow-x: auto;
+  min-width: max-content;
+}
+
+/* 确保表格内容不被截断 */
+.table th[style*="width"],
+.table td[style*="width"] {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Events页面表格滚动优化 */
@@ -1856,6 +2030,23 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
   overflow-y: auto;
   max-height: calc(100vh - 140px); /* 进一步减少最大高度限制，让表格内容区尽可能大 */
   min-height: 200px; /* 添加最小高度，确保表格内容能够正确显示 */
+}
+
+/* Events页面表格容器优化 - 支持换行 */
+.events-table {
+  min-width: 1200px; /* 确保所有列都能显示 */
+  table-layout: auto; /* 使用自动表格布局，允许内容换行 */
+}
+
+.events-table .table-content-area {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* Events页面表格行高度自适应 */
+.events-table tbody tr {
+  height: auto; /* 允许行高自适应内容 */
+  min-height: 40px; /* 设置最小行高 */
 }
 
 /* Events页面表格头部固定 */
@@ -1886,4 +2077,208 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .mai
 
 .table-card {
   margin-bottom: 8px !important; /* 设置8px空白，让表格和分页组件之间有适当的间距 */
+}
+
+/* 全局滚动条隐藏 - 最高优先级 */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+*::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+}
+
+*::-webkit-scrollbar-corner {
+  display: none !important;
+}
+
+/* 特别针对详情卡片的滚动条隐藏 */
+.detail-card,
+.detail-card-content,
+.detail-item,
+.detail-value,
+.labels-container,
+.annotations-container,
+.label-item,
+.annotation-item,
+.label-key,
+.label-value,
+.annotation-key,
+.annotation-value {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  /* 保持原有的overflow设置，但隐藏滚动条 */
+}
+
+/* 强制隐藏所有Webkit滚动条 */
+.detail-card::-webkit-scrollbar,
+.detail-card-content::-webkit-scrollbar,
+.detail-item::-webkit-scrollbar,
+.detail-value::-webkit-scrollbar,
+.labels-container::-webkit-scrollbar,
+.annotations-container::-webkit-scrollbar,
+.label-item::-webkit-scrollbar,
+.annotation-item::-webkit-scrollbar,
+.label-key::-webkit-scrollbar,
+.label-value::-webkit-scrollbar,
+.annotation-key::-webkit-scrollbar,
+.annotation-value::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 强制隐藏滚动条轨道 */
+.detail-card::-webkit-scrollbar-track,
+.detail-card-content::-webkit-scrollbar-track,
+.detail-item::-webkit-scrollbar-track,
+.detail-value::-webkit-scrollbar-track,
+.labels-container::-webkit-scrollbar-track,
+.annotations-container::-webkit-scrollbar-track,
+.label-item::-webkit-scrollbar-track,
+.annotation-item::-webkit-scrollbar-track,
+.label-key::-webkit-scrollbar-track,
+.label-value::-webkit-scrollbar-track,
+.annotation-key::-webkit-scrollbar-track,
+.annotation-value::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 强制隐藏滚动条滑块 */
+.detail-card::-webkit-scrollbar-thumb,
+.detail-card-content::-webkit-scrollbar-thumb,
+.detail-item::-webkit-scrollbar-thumb,
+.detail-value::-webkit-scrollbar-thumb,
+.labels-container::-webkit-scrollbar-thumb,
+.annotations-container::-webkit-scrollbar-thumb,
+.label-item::-webkit-scrollbar-thumb,
+.annotation-item::-webkit-scrollbar-thumb,
+.label-key::-webkit-scrollbar-thumb,
+.label-value::-webkit-scrollbar-thumb,
+.annotation-key::-webkit-scrollbar-thumb,
+.annotation-value::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 强制隐藏滚动条滑块悬停状态 */
+.detail-card::-webkit-scrollbar-thumb:hover,
+.detail-card-content::-webkit-scrollbar-thumb:hover,
+.detail-item::-webkit-scrollbar-thumb:hover,
+.detail-value::-webkit-scrollbar-thumb:hover,
+.labels-container::-webkit-scrollbar-thumb:hover,
+.annotations-container::-webkit-scrollbar-thumb:hover,
+.label-item::-webkit-scrollbar-thumb:hover,
+.annotation-item::-webkit-scrollbar-thumb:hover,
+.label-key::-webkit-scrollbar-thumb:hover,
+.label-value::-webkit-scrollbar-thumb:hover,
+.annotation-key::-webkit-scrollbar-thumb:hover,
+.annotation-value::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 强制隐藏滚动条角落 */
+.detail-card::-webkit-scrollbar-corner,
+.detail-card-content::-webkit-scrollbar-corner,
+.detail-item::-webkit-scrollbar-corner,
+.detail-value::-webkit-scrollbar-corner,
+.labels-container::-webkit-scrollbar-corner,
+.annotations-container::-webkit-scrollbar-corner,
+.label-item::-webkit-scrollbar-corner,
+.annotation-item::-webkit-scrollbar-corner,
+.label-key::-webkit-scrollbar-corner,
+.label-value::-webkit-scrollbar-corner,
+.annotation-key::-webkit-scrollbar-corner,
+.annotation-value::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 针对所有可能的滚动容器 - 使用属性选择器 */
+[class*="detail"]::-webkit-scrollbar,
+[class*="card"]::-webkit-scrollbar,
+[class*="container"]::-webkit-scrollbar,
+[class*="item"]::-webkit-scrollbar,
+[class*="value"]::-webkit-scrollbar,
+[class*="label"]::-webkit-scrollbar,
+[class*="annotation"]::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+[class*="detail"]::-webkit-scrollbar-track,
+[class*="card"]::-webkit-scrollbar-track,
+[class*="container"]::-webkit-scrollbar-track,
+[class*="item"]::-webkit-scrollbar-track,
+[class*="value"]::-webkit-scrollbar-track,
+[class*="label"]::-webkit-scrollbar-track,
+[class*="annotation"]::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+[class*="detail"]::-webkit-scrollbar-thumb,
+[class*="card"]::-webkit-scrollbar-thumb,
+[class*="container"]::-webkit-scrollbar-thumb,
+[class*="item"]::-webkit-scrollbar-thumb,
+[class*="value"]::-webkit-scrollbar-thumb,
+[class*="label"]::-webkit-scrollbar-thumb,
+[class*="annotation"]::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 最后确保所有详情相关元素都不显示滚动条 */
+.detail-card *,
+.detail-card-content *,
+.detail-item *,
+.detail-value *,
+.labels-container *,
+.annotations-container *,
+.label-item *,
+.annotation-item *,
+.label-key *,
+.label-value *,
+.annotation-key *,
+.annotation-value * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.detail-card *::-webkit-scrollbar,
+.detail-card-content *::-webkit-scrollbar,
+.detail-item *::-webkit-scrollbar,
+.detail-value *::-webkit-scrollbar,
+.labels-container *::-webkit-scrollbar,
+.annotations-container *::-webkit-scrollbar,
+.label-item *::-webkit-scrollbar,
+.annotation-item *::-webkit-scrollbar,
+.label-key *::-webkit-scrollbar,
+.label-value *::-webkit-scrollbar,
+.annotation-key *::-webkit-scrollbar,
+.annotation-value *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
 }

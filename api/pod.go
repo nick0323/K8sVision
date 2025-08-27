@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -29,12 +30,13 @@ func RegisterPod(
 
 // getPodList 获取Pod列表的处理函数
 // @Summary 获取 Pod 列表
-// @Description 获取Pod列表，支持分页
+// @Description 获取Pod列表，支持分页和搜索
 // @Tags Pod
 // @Security BearerAuth
 // @Param namespace query string false "命名空间"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
+// @Param search query string false "搜索关键词（支持名称、命名空间、状态、PodIP、节点等字段搜索）"
 // @Success 200 {object} model.APIResponse
 // @Router /pods [get]
 func getPodList(
@@ -52,6 +54,8 @@ func getPodList(
 		namespace := c.DefaultQuery("namespace", "")
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
+		
 		metricsList, _ := metricsClient.MetricsV1beta1().PodMetricses(namespace).List(ctx, metav1.ListOptions{})
 		podMetricsMap := make(model.PodMetricsMap)
 		if metricsList != nil {
@@ -69,9 +73,19 @@ func getPodList(
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		paged := Paginate(podStatuses, offset, limit)
+
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredPods []model.PodStatus
+		if search != "" {
+			filteredPods = filterPodsBySearch(podStatuses, search)
+		} else {
+			filteredPods = podStatuses
+		}
+
+		// 对过滤后的数据进行分页
+		paged := Paginate(filteredPods, offset, limit)
 		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
-			Total:  len(podStatuses),
+			Total:  len(filteredPods), // 使用过滤后的总数
 			Limit:  limit,
 			Offset: offset,
 		})
@@ -122,4 +136,27 @@ func getPodDetail(
 		}
 		middleware.ResponseSuccess(c, podDetail, "success", nil)
 	}
+}
+
+// filterPodsBySearch 根据搜索关键词过滤Pod
+func filterPodsBySearch(pods []model.PodStatus, search string) []model.PodStatus {
+	if search == "" {
+		return pods
+	}
+
+	searchLower := strings.ToLower(search)
+	var filtered []model.PodStatus
+
+	for _, pod := range pods {
+		// 检查Pod的各个字段是否匹配搜索关键词
+		if strings.Contains(strings.ToLower(pod.Name), searchLower) ||
+			strings.Contains(strings.ToLower(pod.Namespace), searchLower) ||
+			strings.Contains(strings.ToLower(pod.Status), searchLower) ||
+			strings.Contains(strings.ToLower(pod.PodIP), searchLower) ||
+			strings.Contains(strings.ToLower(pod.NodeName), searchLower) {
+			filtered = append(filtered, pod)
+		}
+	}
+
+	return filtered
 }

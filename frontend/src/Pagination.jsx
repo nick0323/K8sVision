@@ -5,6 +5,8 @@ export default function Pagination({
   total, 
   pageSize, 
   onPageChange,
+  onPageSizeChange, // 新增：处理每页行数变化的回调
+  pageSizeOptions = [10, 20, 50, 100], // 新增：可选的每页行数选项
   fixed = false, // 是否固定在表格底部
   fixedBottom = false // 是否固定在页面底部
 }) {
@@ -42,9 +44,23 @@ export default function Pagination({
   
   return (
     <div className={className}>
-      {/* 左侧：总行数和额外信息 */}
+      {/* 左侧：总行数和每页行数选择器 */}
       <div className="pagination-total">
         <span>{total} row(s) total</span>
+        <span className="pagination-separator">|</span>
+        <span className="page-size-selector">
+          <span>Show </span>
+          <select 
+            value={pageSize} 
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="page-size-select"
+          >
+            {pageSizeOptions.map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+          <span> per page</span>
+        </span>
       </div>
       
       {/* 右侧：页码信息和导航按钮 */}

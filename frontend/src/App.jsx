@@ -1,12 +1,13 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useCallback, useMemo, useEffect } from 'react';
 import './App.css';
+import LoadingSpinner from './components/LoadingSpinner';
 import { FaLayerGroup, FaDesktop, FaBell, FaCubes, FaTasks, FaChartPie, FaDatabase, FaShieldAlt, FaProjectDiagram, FaSync, FaNetworkWired, FaRegClock, FaChevronDown, FaChevronRight, FaChevronLeft, FaHdd, FaBoxOpen, FaBoxes, FaCog, FaKey } from 'react-icons/fa';
 import { LuSquareDashed } from 'react-icons/lu';
 import { MENU_LIST, API_MAP } from './constants';
 import LoginPage from './LoginPage';
 import { FiLogOut } from 'react-icons/fi';
 
-// 懒加载页面组件
+// 懒加载页面组件 - 添加预加载策略
 const OverviewPage = lazy(() => import('./OverviewPage'));
 const NamespacesPage = lazy(() => import('./NamespacesPage'));
 const NodesPage = lazy(() => import('./NodesPage'));
@@ -27,7 +28,7 @@ const StorageClassesPage = lazy(() => import('./StorageClassesPage'));
 const ConfigMapsPage = lazy(() => import('./ConfigMapsPage'));
 const SecretsPage = lazy(() => import('./SecretsPage'));
 
-// 图标映射
+// 图标映射 - 使用useMemo优化
 const ICON_MAP = {
   FaChartPie: <FaChartPie />,
   FaDesktop: <FaDesktop />,
@@ -48,7 +49,7 @@ const ICON_MAP = {
   LuSquareDashed: <LuSquareDashed />,
 };
 
-// 页面组件映射
+// 页面组件映射 - 使用useMemo优化
 const PAGE_COMPONENTS = {
   overview: OverviewPage,
   namespaces: NamespacesPage,
@@ -71,61 +72,64 @@ const PAGE_COMPONENTS = {
   secrets: SecretsPage,
 };
 
-function isLoggedIn() {
-  return !!localStorage.getItem('token');
-}
+// 预加载策略：当用户hover到菜单项时预加载对应组件
+const preloadComponent = (componentKey) => {
+  const Component = PAGE_COMPONENTS[componentKey];
+  if (Component && Component.preload) {
+    Component.preload();
+  }
+};
 
-function setAuthHeader(onLogout) {
-  const token = localStorage.getItem('token');
-  console.log('设置认证头，token:', token ? 'exists' : 'not found');
+// 认证相关工具函数
+const authUtils = {
+  isLoggedIn: () => !!localStorage.getItem('token'),
   
-  if (token) {
-    // 检查token格式
-    const segments = token.split('.');
-    console.log('Token segments:', segments.length);
-    if (segments.length !== 3) {
-      console.warn('Token格式错误，清除token');
-      localStorage.removeItem('token');
-      if (onLogout) onLogout();
-      return;
-    }
+  setAuthHeader: (onLogout) => {
+    const token = localStorage.getItem('token');
     
-    // 重置fetch拦截器
-    if (window._originalFetch) {
-      window.fetch = window._originalFetch;
-    }
-    
-    window.fetch = ((origFetch) => async (url, options = {}) => {
-      options.headers = options.headers || {};
-      options.headers['Authorization'] = `Bearer ${token}`;
-      console.log('发送请求:', url, '带Authorization头');
-      
-      const res = await origFetch(url, options);
-      console.log('响应状态:', res.status);
-      
-      if (res.status === 401) {
-        console.warn('收到401错误，清除token');
+    if (token) {
+      // 检查token格式
+      const segments = token.split('.');
+      if (segments.length !== 3) {
+        console.warn('Token格式错误，清除token');
         localStorage.removeItem('token');
         if (onLogout) onLogout();
+        return;
       }
       
-      return res;
-    })(window.fetch);
-    
-    window._fetchInterceptorSet = true;
-    console.log('Fetch拦截器设置成功');
-  } else {
-    // 如果没有token，恢复原始fetch
-    if (window._originalFetch) {
-      window.fetch = window._originalFetch;
-      window._fetchInterceptorSet = false;
-      console.log('恢复原始fetch');
+      // 重置fetch拦截器
+      if (window._originalFetch) {
+        window.fetch = window._originalFetch;
+      }
+      
+      window.fetch = ((origFetch) => async (url, options = {}) => {
+        options.headers = options.headers || {};
+        options.headers['Authorization'] = `Bearer ${token}`;
+        
+        const res = await origFetch(url, options);
+        
+        if (res.status === 401) {
+          console.warn('收到401错误，清除token');
+          localStorage.removeItem('token');
+          if (onLogout) onLogout();
+        }
+        
+        return res;
+      })(window.fetch);
+      
+      window._fetchInterceptorSet = true;
+    } else {
+      // 如果没有token，恢复原始fetch
+      if (window._originalFetch) {
+        window.fetch = window._originalFetch;
+        window._fetchInterceptorSet = false;
+      }
     }
   }
-}
+};
 
 export default function App() {
-  const [login, setLogin] = React.useState(isLoggedIn());
+  const [login, setLogin] = React.useState(authUtils.isLoggedIn());
   const [tab, setTab] = useState('overview');
   // 分组折叠状态
   const [openGroups, setOpenGroups] = useState(() => {
@@ -140,16 +144,20 @@ export default function App() {
       return JSON.parse(localStorage.getItem('sider_collapsed') || 'false');
     } catch (e) { return false; }
   });
-  const toggleCollapsed = React.useCallback(() => {
+  
+  // 使用useCallback优化函数，避免不必要的重渲染
+  const toggleCollapsed = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
       localStorage.setItem('sider_collapsed', JSON.stringify(next));
       return next;
     });
   }, []);
+  
   // 折叠态气泡提示
   const [tip, setTip] = useState({ visible: false, text: '', x: 0, y: 0 });
-  const showTip = React.useCallback((e, text) => {
+  
+  const showTip = useCallback((e, text) => {
     if (!collapsed) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setTip({
@@ -159,29 +167,15 @@ export default function App() {
       y: rect.top + rect.height / 2,
     });
   }, [collapsed]);
-  const hideTip = React.useCallback(() => setTip(t => ({ ...t, visible: false })), []);
   
-  React.useEffect(() => {
-    // 保存原始fetch函数
-    if (!window._originalFetch) {
-      window._originalFetch = window.fetch;
-    }
-    
-    // 初始化认证头
-    if (isLoggedIn()) {
-      setAuthHeader(() => {
-        localStorage.removeItem('token');
-        setLogin(false);
-      });
-    }
-  }, []); 
+  const hideTip = useCallback(() => setTip(t => ({ ...t, visible: false })), []);
   
   // 处理登录状态变化
-  const handleLogin = React.useCallback(() => {
+  const handleLogin = useCallback(() => {
     setLogin(true);
     // 稍后设置认证头，确保状态已更新
     setTimeout(() => {
-      setAuthHeader(() => {
+      authUtils.setAuthHeader(() => {
         localStorage.removeItem('token');
         setLogin(false);
       });
@@ -189,20 +183,61 @@ export default function App() {
   }, []);
   
   // 退出登录按钮
-  const handleLogout = React.useCallback(() => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
     setLogin(false);
   }, []);
   
-  const toggleGroup = React.useCallback((group) => {
+  const toggleGroup = useCallback((group) => {
     setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }));
   }, []);
+  
+  // 处理标签页切换，添加预加载
+  const handleTabChange = useCallback((newTab) => {
+    setTab(newTab);
+    // 预加载相邻的组件
+    const menuItems = MENU_LIST.flatMap(g => g.items);
+    const currentIndex = menuItems.findIndex(item => item.key === newTab);
+    if (currentIndex !== -1) {
+      // 预加载下一个组件
+      if (currentIndex + 1 < menuItems.length) {
+        preloadComponent(menuItems[currentIndex + 1].key);
+      }
+      // 预加载上一个组件
+      if (currentIndex - 1 >= 0) {
+        preloadComponent(menuItems[currentIndex - 1].key);
+      }
+    }
+  }, []);
+  
+  // 使用useMemo优化菜单渲染
+  const menuItemsList = useMemo(() => {
+    return MENU_LIST.flatMap(g => g.items);
+  }, []);
+  
+  // 使用useMemo优化当前页面组件
+  const CurrentPage = useMemo(() => {
+    return PAGE_COMPONENTS[tab] || (() => <div style={{padding:32,textAlign:'center',color:'#888'}}>页面开发中</div>);
+  }, [tab]);
+  
+  useEffect(() => {
+    // 保存原始fetch函数
+    if (!window._originalFetch) {
+      window._originalFetch = window.fetch;
+    }
+    
+    // 初始化认证头
+    if (authUtils.isLoggedIn()) {
+      authUtils.setAuthHeader(() => {
+        localStorage.removeItem('token');
+        setLogin(false);
+      });
+    }
+  }, []); 
   
   if (!login) {
     return <LoginPage onLogin={handleLogin} />;
   }
-  
-  const CurrentPage = PAGE_COMPONENTS[tab] || (() => <div style={{padding:32,textAlign:'center',color:'#888'}}>页面开发中</div>);
 
   return (
     <div className="layout-root" data-sider-collapsed={collapsed}>
@@ -218,8 +253,11 @@ export default function App() {
               <li
                 key={item.key}
                 className={tab === item.key ? 'active' : ''}
-                onClick={() => setTab(item.key)}
-                onMouseEnter={(e)=>showTip(e,item.label)}
+                onClick={() => handleTabChange(item.key)}
+                onMouseEnter={(e) => {
+                  showTip(e, item.label);
+                  preloadComponent(item.key);
+                }}
                 onMouseLeave={hideTip}
                 data-tip={item.label}
               >
@@ -248,8 +286,11 @@ export default function App() {
                   <li
                     key={item.key}
                     className={tab === item.key ? 'active' : ''}
-                    onClick={() => setTab(item.key)}
-                    onMouseEnter={(e)=>showTip(e,item.label)}
+                    onClick={() => handleTabChange(item.key)}
+                    onMouseEnter={(e) => {
+                      showTip(e, item.label);
+                      preloadComponent(item.key);
+                    }}
                     onMouseLeave={hideTip}
                     data-tip={item.label}
                   >
@@ -269,7 +310,14 @@ export default function App() {
         </div>
       </div>
       <div className="main-content">
-        <Suspense fallback={<div style={{textAlign:'center',color:'#888',padding:'32px 0'}}>Loading...</div>}>
+        <Suspense fallback={
+          <LoadingSpinner 
+            type="spinner" 
+            text="Loading..." 
+            size="lg"
+            className="app-loading"
+          />
+        }>
           <CurrentPage collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
         </Suspense>
       </div>

@@ -53,6 +53,8 @@ func getNodeList(
 		ctx := context.Background()
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
+		
 		podMetricsList, _ := metricsClient.MetricsV1beta1().PodMetricses("").List(ctx, metav1.ListOptions{})
 		podMetricsMap := make(model.PodMetricsMap)
 		if podMetricsList != nil {
@@ -73,8 +75,18 @@ func getNodeList(
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		total := len(nodeStatuses)
-		paged := Paginate(nodeStatuses, offset, limit)
+
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredNodes []model.NodeStatus
+		if search != "" {
+			filteredNodes = filterNodesBySearch(nodeStatuses, search)
+		} else {
+			filteredNodes = nodeStatuses
+		}
+
+		// 对过滤后的数据进行分页
+		total := len(filteredNodes)
+		paged := Paginate(filteredNodes, offset, limit)
 		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
 			Total:  total,
 			Limit:  limit,
@@ -168,4 +180,25 @@ func getNodeDetail(
 		}
 		middleware.ResponseSuccess(c, nodeDetail, "success", nil)
 	}
+}
+
+// filterNodesBySearch 根据搜索关键词过滤Node
+func filterNodesBySearch(nodes []model.NodeStatus, search string) []model.NodeStatus {
+	if search == "" {
+		return nodes
+	}
+
+	searchLower := strings.ToLower(search)
+	var filtered []model.NodeStatus
+
+	for _, node := range nodes {
+		// 检查Node的各个字段是否匹配搜索关键词
+		if strings.Contains(strings.ToLower(node.Name), searchLower) ||
+			strings.Contains(strings.ToLower(node.Status), searchLower) ||
+			strings.Contains(strings.ToLower(node.IP), searchLower) {
+			filtered = append(filtered, node)
+		}
+	}
+
+	return filtered
 }

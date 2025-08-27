@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -52,6 +53,7 @@ func getPVCList(
 		namespace := c.DefaultQuery("namespace", "")
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
 
 		pvcStatuses, err := listPVCs(ctx, clientset, namespace)
 		if err != nil {
@@ -59,9 +61,18 @@ func getPVCList(
 			return
 		}
 
-		paged := Paginate(pvcStatuses, offset, limit)
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredPVCs []model.PVCStatus
+		if search != "" {
+			filteredPVCs = filterPVCsBySearch(pvcStatuses, search)
+		} else {
+			filteredPVCs = pvcStatuses
+		}
+
+		// 对过滤后的数据进行分页
+		paged := Paginate(filteredPVCs, offset, limit)
 		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
-			Total:  len(pvcStatuses),
+			Total:  len(filteredPVCs), // 使用过滤后的总数
 			Limit:  limit,
 			Offset: offset,
 		})
@@ -126,4 +137,27 @@ func getPVCDetail(
 		}
 		middleware.ResponseSuccess(c, pvcDetail, "success", nil)
 	}
+}
+
+// filterPVCsBySearch 根据搜索关键词过滤PVC
+func filterPVCsBySearch(pvcs []model.PVCStatus, search string) []model.PVCStatus {
+	if search == "" {
+		return pvcs
+	}
+
+	searchLower := strings.ToLower(search)
+	var filtered []model.PVCStatus
+
+	for _, pvc := range pvcs {
+		// 检查PVC的各个字段是否匹配搜索关键词
+		if strings.Contains(strings.ToLower(pvc.Name), searchLower) ||
+			strings.Contains(strings.ToLower(pvc.Namespace), searchLower) ||
+			strings.Contains(strings.ToLower(pvc.Status), searchLower) ||
+			strings.Contains(strings.ToLower(pvc.Capacity), searchLower) ||
+			strings.Contains(strings.ToLower(pvc.StorageClass), searchLower) {
+			filtered = append(filtered, pvc)
+		}
+	}
+
+	return filtered
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -50,6 +51,7 @@ func getPVList(
 		ctx := context.Background()
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
 
 		pvStatuses, err := listPVs(ctx, clientset)
 		if err != nil {
@@ -57,9 +59,18 @@ func getPVList(
 			return
 		}
 
-		paged := Paginate(pvStatuses, offset, limit)
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredPVs []model.PVStatus
+		if search != "" {
+			filteredPVs = filterPVsBySearch(pvStatuses, search)
+		} else {
+			filteredPVs = pvStatuses
+		}
+
+		// 对过滤后的数据进行分页
+		paged := Paginate(filteredPVs, offset, limit)
 		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
-			Total:  len(pvStatuses),
+			Total:  len(filteredPVs), // 使用过滤后的总数
 			Limit:  limit,
 			Offset: offset,
 		})
@@ -127,4 +138,26 @@ func getPVDetail(
 		}
 		middleware.ResponseSuccess(c, pvDetail, "success", nil)
 	}
+}
+
+// filterPVsBySearch 根据搜索关键词过滤PV
+func filterPVsBySearch(pvs []model.PVStatus, search string) []model.PVStatus {
+	if search == "" {
+		return pvs
+	}
+
+	searchLower := strings.ToLower(search)
+	var filtered []model.PVStatus
+
+	for _, pv := range pvs {
+		// 检查PV的各个字段是否匹配搜索关键词
+		if strings.Contains(strings.ToLower(pv.Name), searchLower) ||
+			strings.Contains(strings.ToLower(pv.Status), searchLower) ||
+			strings.Contains(strings.ToLower(pv.Capacity), searchLower) ||
+			strings.Contains(strings.ToLower(pv.StorageClass), searchLower) {
+			filtered = append(filtered, pv)
+		}
+	}
+
+	return filtered
 }

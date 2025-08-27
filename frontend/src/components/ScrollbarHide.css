@@ -1,0 +1,113 @@
+/* 滚动条隐藏统一管理文件 */
+/* 全局滚动条隐藏 */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 详情页面专用滚动条隐藏 */
+.detail-card,
+.detail-card-content,
+.detail-item,
+.detail-value,
+.labels-container,
+.annotations-container,
+.label-item,
+.annotation-item,
+.label-key,
+.label-value,
+.annotation-key,
+.annotation-value {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 模态框专用滚动条隐藏 */
+.resource-detail-modal,
+.modal-content,
+.modal-header,
+.modal-body,
+.detail-content {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 资源摘要专用滚动条隐藏 */
+.resource-summary-card,
+.resource-summary-title,
+.resource-summary-info,
+.resource-summary-row,
+.resource-block,
+.resource-header,
+.label,
+.value,
+.progress-bar,
+.progress,
+.percent,
+.resource-summary-available {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 概览页面专用滚动条隐藏 */
+.overview-event-card,
+.overview-card,
+.overview-event-item,
+.overview-event-main,
+.overview-event-type,
+.overview-event-reason,
+.overview-event-time,
+.overview-event-message,
+.overview-event-meta {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 表格专用滚动条隐藏 */
+.table-content-area,
+.table-card,
+.table-header,
+.table-body {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 侧边栏专用滚动条隐藏 */
+.sider-menu,
+.sider-scroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 命名空间选择器专用滚动条隐藏 */
+.namespace-select select {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}

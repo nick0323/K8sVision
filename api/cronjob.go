@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -27,12 +29,13 @@ func RegisterCronJob(
 
 // getCronJobList 获取CronJob列表的处理函数
 // @Summary 获取 CronJob 列表
-// @Description 获取CronJob列表，支持分页
+// @Description 获取CronJob列表，支持分页和搜索
 // @Tags CronJob
 // @Security BearerAuth
 // @Param namespace query string false "命名空间"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
+// @Param search query string false "搜索关键词（支持名称、命名空间、状态等字段搜索）"
 // @Success 200 {object} model.APIResponse
 // @Router /cronjobs [get]
 func getCronJobList(
@@ -40,7 +43,60 @@ func getCronJobList(
 	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
 	listCronJobs func(context.Context, *kubernetes.Clientset, string) ([]model.CronJobStatus, error),
 ) gin.HandlerFunc {
-	return GenericListHandler(logger, getK8sClient, listCronJobs)
+	return func(c *gin.Context) {
+		clientset, _, err := getK8sClient()
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+		ctx := context.Background()
+		namespace := c.DefaultQuery("namespace", "")
+		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
+
+		cronJobs, err := listCronJobs(ctx, clientset, namespace)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredCronJobs []model.CronJobStatus
+		if search != "" {
+			filteredCronJobs = filterCronJobsBySearch(cronJobs, search)
+		} else {
+			filteredCronJobs = cronJobs
+		}
+
+		// 对过滤后的数据进行分页
+		paged := Paginate(filteredCronJobs, offset, limit)
+		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
+			Total:  len(filteredCronJobs), // 使用过滤后的总数
+			Limit:  limit,
+			Offset: offset,
+		})
+	}
+}
+
+// filterCronJobsBySearch 根据搜索关键词过滤CronJob
+func filterCronJobsBySearch(cronJobs []model.CronJobStatus, search string) []model.CronJobStatus {
+	if search == "" {
+		return cronJobs
+	}
+	searchLower := strings.ToLower(search)
+	var filtered []model.CronJobStatus
+	for _, cronJob := range cronJobs {
+		if strings.Contains(strings.ToLower(cronJob.Name), searchLower) ||
+			strings.Contains(strings.ToLower(cronJob.Namespace), searchLower) ||
+			strings.Contains(strings.ToLower(cronJob.Schedule), searchLower) ||
+			strings.Contains(strings.ToLower(cronJob.Status), searchLower) ||
+			strings.Contains(strings.ToLower(strconv.Itoa(cronJob.Active)), searchLower) ||
+			strings.Contains(strings.ToLower(cronJob.LastScheduleTime), searchLower) {
+			filtered = append(filtered, cronJob)
+		}
+	}
+	return filtered
 }
 
 // getCronJobDetail 获取CronJob详情的处理函数

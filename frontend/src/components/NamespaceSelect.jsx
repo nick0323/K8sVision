@@ -14,7 +14,6 @@ export default function NamespaceSelect({ value, onChange, placeholder = "All Na
       const namespaceList = result.data || result || [];
       setNamespaces(Array.isArray(namespaceList) ? namespaceList : []);
     } catch (error) {
-      console.error('Failed to fetch namespaces:', error);
       setNamespaces([]); // 出错时设置为空数组
     } finally {
       setLoading(false);

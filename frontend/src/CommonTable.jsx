@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { EMPTY_TEXT } from './constants';
 
 export default function CommonTable({ 
@@ -28,7 +28,9 @@ export default function CommonTable({
           <thead>
             <tr>
               {columns.map(col => (
-                <th key={col.key || col.dataIndex}>{col.label || col.title}</th>
+                <th key={col.key || col.dataIndex} style={col.width ? { width: col.width, minWidth: col.width } : {}}>
+                  {col.label || col.title}
+                </th>
               ))}
             </tr>
           </thead>

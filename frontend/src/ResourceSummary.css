@@ -106,4 +106,6 @@
   font-size: var(--font-size-sm);
   margin-top: 6px;
   font-family: var(--font-main);
-} 
+}
+
+/* 滚动条隐藏已移至 ScrollbarHide.css 统一管理 */ 

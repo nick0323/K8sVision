@@ -243,21 +243,26 @@
 }
 
 .detail-card-content::-webkit-scrollbar {
-  width: 4px;
+  width: 0 !important;
+  display: none !important;
 }
 
 .detail-card-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 2px;
+  display: none !important;
 }
 
 .detail-card-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 2px;
+  display: none !important;
 }
 
 .detail-card-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  display: none !important;
+}
+
+/* 确保滚动条完全隐藏 */
+.detail-card-content {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 /* 详情项 */
@@ -486,4 +491,306 @@
   .detail-content {
     gap: 16px;
   }
+} 
+
+/* 滚动条隐藏已移至 ScrollbarHide.css 统一管理 */
+
+
+
+.resource-detail-modal::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track,
+.modal-header::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.detail-content::-webkit-scrollbar-track,
+.detail-card::-webkit-scrollbar-track,
+.detail-card-content::-webkit-scrollbar-track,
+.detail-item::-webkit-scrollbar-track,
+.detail-label::-webkit-scrollbar-track,
+.detail-value::-webkit-scrollbar-track,
+.labels-container::-webkit-scrollbar-track,
+.annotations-container::-webkit-scrollbar-track,
+.label-item::-webkit-scrollbar-track,
+.annotation-item::-webkit-scrollbar-track,
+.label-key::-webkit-scrollbar-track,
+.label-value::-webkit-scrollbar-track,
+.annotation-key::-webkit-scrollbar-track,
+.annotation-value::-webkit-scrollbar-track,
+.container-item::-webkit-scrollbar-track,
+.container-info::-webkit-scrollbar-track,
+.container-name::-webkit-scrollbar-track,
+.container-image::-webkit-scrollbar-track,
+.status-tag::-webkit-scrollbar-track,
+.status-running::-webkit-scrollbar-track,
+.status-ready::-webkit-scrollbar-track,
+.status-failed::-webkit-scrollbar-track,
+.status-pending::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+.resource-detail-modal::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb,
+.modal-header::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.detail-content::-webkit-scrollbar-thumb,
+.detail-card::-webkit-scrollbar-thumb,
+.detail-card-content::-webkit-scrollbar-thumb,
+.detail-item::-webkit-scrollbar-thumb,
+.detail-label::-webkit-scrollbar-thumb,
+.detail-value::-webkit-scrollbar-thumb,
+.labels-container::-webkit-scrollbar-thumb,
+.annotations-container::-webkit-scrollbar-thumb,
+.label-item::-webkit-scrollbar-thumb,
+.annotation-item::-webkit-scrollbar-thumb,
+.label-key::-webkit-scrollbar-thumb,
+.label-value::-webkit-scrollbar-thumb,
+.annotation-key::-webkit-scrollbar-thumb,
+.annotation-value::-webkit-scrollbar-thumb,
+.container-item::-webkit-scrollbar-thumb,
+.container-info::-webkit-scrollbar-thumb,
+.container-name::-webkit-scrollbar-thumb,
+.container-image::-webkit-scrollbar-thumb,
+.status-tag::-webkit-scrollbar-thumb,
+.status-running::-webkit-scrollbar-thumb,
+.status-ready::-webkit-scrollbar-thumb,
+.status-failed::-webkit-scrollbar-thumb,
+.status-pending::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+.resource-detail-modal::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover,
+.modal-header::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.detail-content::-webkit-scrollbar-thumb:hover,
+.detail-card::-webkit-scrollbar-thumb:hover,
+.detail-card-content::-webkit-scrollbar-thumb:hover,
+.detail-item::-webkit-scrollbar-thumb:hover,
+.detail-label::-webkit-scrollbar-thumb:hover,
+.detail-value::-webkit-scrollbar-thumb:hover,
+.labels-container::-webkit-scrollbar-thumb:hover,
+.annotations-container::-webkit-scrollbar-thumb:hover,
+.label-item::-webkit-scrollbar-thumb:hover,
+.annotation-item::-webkit-scrollbar-thumb:hover,
+.label-key::-webkit-scrollbar-thumb:hover,
+.label-value::-webkit-scrollbar-thumb:hover,
+.annotation-key::-webkit-scrollbar-thumb:hover,
+.annotation-value::-webkit-scrollbar-thumb:hover,
+.container-item::-webkit-scrollbar-thumb:hover,
+.container-info::-webkit-scrollbar-thumb:hover,
+.container-name::-webkit-scrollbar-thumb:hover,
+.container-image::-webkit-scrollbar-thumb:hover,
+.status-tag::-webkit-scrollbar-thumb:hover,
+.status-running::-webkit-scrollbar-thumb:hover,
+.status-ready::-webkit-scrollbar-thumb:hover,
+.status-failed::-webkit-scrollbar-thumb:hover,
+.status-pending::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+} 
+
+/* 强制隐藏详情模态框中所有元素的滚动条 - 最终解决方案 */
+.resource-detail-modal *,
+.modal-content *,
+.modal-header *,
+.modal-body *,
+.detail-content *,
+.detail-card *,
+.detail-card-content *,
+.detail-item *,
+.detail-label *,
+.detail-value *,
+.labels-container *,
+.annotations-container *,
+.label-item *,
+.annotation-item *,
+.label-key *,
+.label-value *,
+.annotation-key *,
+.annotation-value *,
+.container-item *,
+.container-info *,
+.container-name *,
+.container-image *,
+.status-tag *,
+.status-running *,
+.status-ready *,
+.status-failed *,
+.status-pending * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.resource-detail-modal *::-webkit-scrollbar,
+.modal-content *::-webkit-scrollbar,
+.modal-header *::-webkit-scrollbar,
+.modal-body *::-webkit-scrollbar,
+.detail-content *::-webkit-scrollbar,
+.detail-card *::-webkit-scrollbar,
+.detail-card-content *::-webkit-scrollbar,
+.detail-item *::-webkit-scrollbar,
+.detail-label *::-webkit-scrollbar,
+.detail-value *::-webkit-scrollbar,
+.labels-container *::-webkit-scrollbar,
+.annotations-container *::-webkit-scrollbar,
+.label-item *::-webkit-scrollbar,
+.annotation-item *::-webkit-scrollbar,
+.label-key *::-webkit-scrollbar,
+.label-value *::-webkit-scrollbar,
+.annotation-key *::-webkit-scrollbar,
+.annotation-value *::-webkit-scrollbar,
+.container-item *::-webkit-scrollbar,
+.container-info *::-webkit-scrollbar,
+.container-name *::-webkit-scrollbar,
+.container-image *::-webkit-scrollbar,
+.status-tag *::-webkit-scrollbar,
+.status-running *::-webkit-scrollbar,
+.status-ready *::-webkit-scrollbar,
+.status-failed *::-webkit-scrollbar,
+.status-pending *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* 针对所有可能的滚动容器 */
+.resource-detail-modal [class*="scroll"],
+.resource-detail-modal [class*="overflow"],
+.resource-detail-modal [style*="overflow"],
+.resource-detail-modal [style*="scroll"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.resource-detail-modal [class*="scroll"]::-webkit-scrollbar,
+.resource-detail-modal [class*="overflow"]::-webkit-scrollbar,
+.resource-detail-modal [style*="overflow"]::-webkit-scrollbar,
+.resource-detail-modal [style*="scroll"]::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* 最后确保所有元素都不显示滚动条 */
+.resource-detail-modal * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.resource-detail-modal *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+} 
+
+/* 详情模态框滚动条彻底隐藏 - 最终解决方案 */
+.resource-detail-modal,
+.modal-content,
+.modal-header,
+.modal-body,
+.detail-content {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.resource-detail-modal::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar,
+.modal-header::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.detail-content::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track,
+.modal-header::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.detail-content::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb,
+.modal-header::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.detail-content::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover,
+.modal-header::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.detail-content::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal::-webkit-scrollbar-corner,
+.modal-content::-webkit-scrollbar-corner,
+.modal-header::-webkit-scrollbar-corner,
+.modal-body::-webkit-scrollbar-corner,
+.detail-content::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* 确保所有子元素都不显示滚动条 */
+.resource-detail-modal *,
+.modal-content *,
+.modal-header *,
+.modal-body *,
+.detail-content * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.resource-detail-modal *::-webkit-scrollbar,
+.modal-content *::-webkit-scrollbar,
+.modal-header *::-webkit-scrollbar,
+.modal-body *::-webkit-scrollbar,
+.detail-content *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal *::-webkit-scrollbar-track,
+.modal-content *::-webkit-scrollbar-track,
+.modal-header *::-webkit-scrollbar-track,
+.modal-body *::-webkit-scrollbar-track,
+.detail-content *::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal *::-webkit-scrollbar-thumb,
+.modal-content *::-webkit-scrollbar-thumb,
+.modal-header *::-webkit-scrollbar-thumb,
+.modal-body *::-webkit-scrollbar-thumb,
+.detail-content *::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal *::-webkit-scrollbar-thumb:hover,
+.modal-content *::-webkit-scrollbar-thumb:hover,
+.modal-header *::-webkit-scrollbar-thumb:hover,
+.modal-body *::-webkit-scrollbar-thumb:hover,
+.detail-content *::-webkit-scrollbar-thumb:hover {
+  display: none !important;
+  background: transparent !important;
+}
+
+.resource-detail-modal *::-webkit-scrollbar-corner,
+.modal-content *::-webkit-scrollbar-corner,
+.modal-header *::-webkit-scrollbar-corner,
+.modal-body *::-webkit-scrollbar-corner,
+.detail-content *::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
 } 

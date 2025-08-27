@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -27,12 +29,13 @@ func RegisterEvent(
 
 // getEventList 获取Event列表的处理函数
 // @Summary 获取 Event 列表
-// @Description 获取Event列表，支持分页
+// @Description 获取Event列表，支持分页和搜索
 // @Tags Event
 // @Security BearerAuth
 // @Param namespace query string false "命名空间"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
+// @Param search query string false "搜索关键词（支持名称、命名空间、原因等字段搜索）"
 // @Success 200 {object} model.APIResponse
 // @Router /events [get]
 func getEventList(
@@ -40,7 +43,63 @@ func getEventList(
 	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
 	listEvents func(context.Context, *kubernetes.Clientset, string) ([]model.EventStatus, error),
 ) gin.HandlerFunc {
-	return GenericListHandler(logger, getK8sClient, listEvents)
+	return func(c *gin.Context) {
+		clientset, _, err := getK8sClient()
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+		ctx := context.Background()
+		namespace := c.DefaultQuery("namespace", "")
+		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
+
+		events, err := listEvents(ctx, clientset, namespace)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredEvents []model.EventStatus
+		if search != "" {
+			filteredEvents = filterEventsBySearch(events, search)
+		} else {
+			filteredEvents = events
+		}
+
+		// 对过滤后的数据进行分页
+		paged := Paginate(filteredEvents, offset, limit)
+		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
+			Total:  len(filteredEvents), // 使用过滤后的总数
+			Limit:  limit,
+			Offset: offset,
+		})
+	}
+}
+
+// filterEventsBySearch 根据搜索关键词过滤Event
+func filterEventsBySearch(events []model.EventStatus, search string) []model.EventStatus {
+	if search == "" {
+		return events
+	}
+	searchLower := strings.ToLower(search)
+	var filtered []model.EventStatus
+	for _, event := range events {
+		if strings.Contains(strings.ToLower(event.Name), searchLower) ||
+			strings.Contains(strings.ToLower(event.Namespace), searchLower) ||
+			strings.Contains(strings.ToLower(event.Reason), searchLower) ||
+			strings.Contains(strings.ToLower(event.Message), searchLower) ||
+			strings.Contains(strings.ToLower(event.Type), searchLower) ||
+			strings.Contains(strings.ToLower(event.FirstSeen), searchLower) ||
+			strings.Contains(strings.ToLower(event.LastSeen), searchLower) ||
+			strings.Contains(strings.ToLower(event.Duration), searchLower) ||
+			strings.Contains(strings.ToLower(strconv.Itoa(int(event.Count))), searchLower) {
+			filtered = append(filtered, event)
+		}
+	}
+	return filtered
 }
 
 // getEventDetail 获取Event详情的处理函数

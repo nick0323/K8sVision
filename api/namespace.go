@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -49,15 +50,27 @@ func getNamespaceList(
 		ctx := context.Background()
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
+		
 		namespaces, err := listNamespaces(ctx, clientset)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		total := len(namespaces)
+
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredNamespaces []model.NamespaceDetail
+		if search != "" {
+			filteredNamespaces = filterNamespacesBySearch(namespaces, search)
+		} else {
+			filteredNamespaces = namespaces
+		}
+
+		// 对过滤后的数据进行分页
+		total := len(filteredNamespaces)
 		var paged []model.NamespaceDetail
-		if len(namespaces) > 0 {
-			paged = Paginate(namespaces, offset, limit)
+		if len(filteredNamespaces) > 0 {
+			paged = Paginate(filteredNamespaces, offset, limit)
 		} else {
 			paged = []model.NamespaceDetail{}
 		}
@@ -103,4 +116,24 @@ func getNamespaceDetail(
 		}
 		middleware.ResponseSuccess(c, namespaceDetail, "success", nil)
 	}
+}
+
+// filterNamespacesBySearch 根据搜索关键词过滤Namespace
+func filterNamespacesBySearch(namespaces []model.NamespaceDetail, search string) []model.NamespaceDetail {
+	if search == "" {
+		return namespaces
+	}
+
+	searchLower := strings.ToLower(search)
+	var filtered []model.NamespaceDetail
+
+	for _, ns := range namespaces {
+		// 检查Namespace的各个字段是否匹配搜索关键词
+		if strings.Contains(strings.ToLower(ns.Name), searchLower) ||
+			strings.Contains(strings.ToLower(ns.Status), searchLower) {
+			filtered = append(filtered, ns)
+		}
+	}
+
+	return filtered
 }

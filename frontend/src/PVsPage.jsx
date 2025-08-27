@@ -4,17 +4,38 @@ import RefreshButton from './components/RefreshButton';
 import SearchInput from './components/SearchInput';
 import PageHeader from './components/PageHeader';
 import ResourceDetailModal from './components/ResourceDetailModal';
-import { SEARCH_PLACEHOLDER, EMPTY_TEXT, PAGE_SIZE } from './constants';
-import { useFilterRows } from './utils';
+import { SEARCH_PLACEHOLDER, EMPTY_TEXT } from './constants';
+import { usePagination } from './hooks/usePagination';
+import { useSimpleSearch } from './hooks/useSimpleSearch';
 import Pagination from './Pagination';
 
 export default function PVsPage({ collapsed, onToggleCollapsed }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
+
+  // 使用分页Hook
+  const {
+    page,
+    pageSize,
+    handlePageChange,
+    handlePageSizeChange,
+    resetPagination,
+    pageSizeOptions
+  } = usePagination();
+
+  // 使用简化的搜索Hook
+  const {
+    search,
+    searchResults,
+    isSearching,
+    searchTotal,
+    handleSearchChange,
+    handleSearchSubmit,
+    clearSearch,
+    hasSearchResults,
+    isSearchActive
+  } = useSimpleSearch('/api/pvs', null);
 
   // 详情模态框状态
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -22,47 +43,137 @@ export default function PVsPage({ collapsed, onToggleCollapsed }) {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(`/api/pvs?limit=${pageSize}&offset=${(page-1)*pageSize}`)
+    const params = new URLSearchParams({
+      limit: pageSize.toString(),
+      offset: ((page-1)*pageSize).toString(),
+    });
+    
+    fetch(`/api/pvs?${params}`)
       .then(res => res.json())
       .then(res => {
-        setData(res.data || res);
+        // 确保数据始终是数组
+        const dataList = res.data || res || [];
+        setData(Array.isArray(dataList) ? dataList : []);
         setPageMeta(res.page || {});
+      })
+      .catch(error => {
+        setData([]); // 出错时设置为空数组
+        setPageMeta({});
       })
       .finally(() => setLoading(false));
   }, [page, pageSize]);
+
+  // 增强的搜索输入变化处理，空值时重新获取数据
+  const handleSearchInputChange = useCallback((e) => {
+    const value = e.target.value;
+    handleSearchChange(e);
+    
+    // 如果搜索框为空，清除搜索状态并重新获取原始数据
+    if (!value.trim()) {
+      clearSearch();
+      fetchData();
+    }
+  }, [handleSearchChange, clearSearch, fetchData]);
+
+  // 增强的清除搜索函数，会重新获取数据
+  const handleClearSearch = useCallback(() => {
+    clearSearch();
+    fetchData();
+  }, [clearSearch, fetchData]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const filteredRows = useFilterRows(data, ['name', 'status'], search);
-
   // 处理资源点击
   const handleResourceClick = (resource) => {
     setCurrentResource({
       type: 'pvs',
-      namespace: null, // PV是集群级别的资源
+      namespace: null,
       name: resource.name
     });
     setDetailModalVisible(true);
   };
 
+  // 确定要显示的数据
+  const displayData = isSearchActive ? searchResults : data;
+  const totalCount = isSearchActive ? searchTotal : (pageMeta?.total || 0);
+
   return (
     <div>
       <PageHeader
-        title="PersistentVolumes"
-        onToggleCollapsed={onToggleCollapsed}
+        title="Persistent Volumes"
         collapsed={collapsed}
+        onToggleCollapsed={onToggleCollapsed}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <SearchInput
-            placeholder={SEARCH_PLACEHOLDER}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <RefreshButton onClick={fetchData} />
-        </div>
+        <SearchInput
+          placeholder={SEARCH_PLACEHOLDER}
+          value={search}
+          onChange={handleSearchInputChange}
+          onSubmit={handleSearchSubmit}
+          onClear={handleClearSearch}
+          isSearching={isSearching}
+          hasSearchResults={hasSearchResults}
+          showSearchButton={false}
+          showClearButton={false}
+        />
+        <RefreshButton onClick={fetchData} />
       </PageHeader>
+
+      {/* 搜索状态提示 */}
+      {isSearchActive && (
+        <div style={{
+          padding: '12px 16px',
+          margin: '8px 0',
+          background: searchTotal > 0 ? '#f0f8ff' : '#fff7e6',
+          border: `1px solid ${searchTotal > 0 ? '#d6e4ff' : '#ffd591'}`,
+          borderRadius: '6px',
+          fontSize: 'var(--font-size-sm)',
+          color: searchTotal > 0 ? '#1890ff' : '#d46b08'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🔍</span>
+              <span>
+                Search results for <strong>"{search}"</strong>: {
+                  searchTotal > 0 
+                    ? `Found ${searchTotal} matching resource${searchTotal > 1 ? 's' : ''}`
+                    : 'No matching resources found'
+                }
+              </span>
+              {searchTotal === 0 && (
+                <span style={{ fontSize: 'var(--font-size-xs)', opacity: 0.8 }}>
+                  💡 Try different keywords or partial names
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleClearSearch}
+              style={{
+                padding: '4px 12px',
+                fontSize: 'var(--font-size-xs)',
+                border: `1px solid ${searchTotal > 0 ? '#1890ff' : '#ffd591'}`,
+                borderRadius: '4px',
+                background: 'white',
+                color: searchTotal > 0 ? '#1890ff' : '#d46b08',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = searchTotal > 0 ? '#1890ff' : '#d46b08';
+                e.target.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.color = searchTotal > 0 ? '#1890ff' : '#d46b08';
+              }}
+            >
+              Clear Search
+            </button>
+          </div>
+        </div>
+      )}
+
       <CommonTable
         columns={[
           { 
@@ -80,27 +191,63 @@ export default function PVsPage({ collapsed, onToggleCollapsed }) {
               );
             }
           },
-          { title: 'State', dataIndex: 'status', render: (val, row, i, isTooltip) => isTooltip ? val : <span className={`status-tag ${val === 'Bound' ? 'status-ready' : 'status-running'}`}>{val}</span> },
           { title: 'Capacity', dataIndex: 'capacity', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
-          { title: 'AccessMode', dataIndex: 'accessMode', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
-          { title: 'StorageClass', dataIndex: 'storageClass', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
-          { title: 'Claim', dataIndex: 'claimRef', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'AccessModes', dataIndex: 'accessMode', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              if (!val) return <span>-</span>;
+              if (Array.isArray(val)) {
+                return <span>{val.length > 0 ? val.join(', ') : '-'}</span>;
+              }
+              return <span>{val}</span>;
+            } },
           { title: 'ReclaimPolicy', dataIndex: 'reclaimPolicy', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'Status', dataIndex: 'status', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              // PV状态的状态标签
+              const isAvailable = val === 'Available';
+              const isBound = val === 'Bound';
+              const isReleased = val === 'Released';
+              const isFailed = val === 'Failed';
+              const isPending = val === 'Pending';
+              
+              let statusClass = 'status-running';
+              if (isAvailable || isBound) {
+                statusClass = 'status-ready';
+              } else if (isPending) {
+                statusClass = 'status-pending';
+              } else if (isFailed || isReleased) {
+                statusClass = 'status-failed';
+              }
+              
+              return <span className={`status-tag ${statusClass}`}>{val}</span>;
+            } },
+          { title: 'StorageClass', dataIndex: 'storageClass', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+          { title: 'ClaimRef', dataIndex: 'claimRef', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val;
+              return <span>{val || '-'}</span>;
+            } },
         ]}
-        data={filteredRows}
+        data={displayData}
         pageSize={pageSize}
         currentPage={page}
-        onPageChange={setPage}
-        total={pageMeta?.total || filteredRows.length}
-        emptyText={EMPTY_TEXT}
+        onPageChange={handlePageChange}
+        total={totalCount}
+        emptyText={isSearchActive ? `No results found for "${search}"` : EMPTY_TEXT}
+        hasFixedPagination={false}
       />
-      <Pagination
-        currentPage={page}
-        total={pageMeta?.total || filteredRows.length}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        fixedBottom={true}
-      />
+
+      {/* 只在非搜索状态下显示分页 */}
+      {!isSearchActive && (
+        <Pagination
+          currentPage={page}
+          total={totalCount}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={pageSizeOptions}
+          fixedBottom={true}
+        />
+      )}
 
       {/* 资源详情模态框 */}
       <ResourceDetailModal

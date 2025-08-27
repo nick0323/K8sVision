@@ -14,6 +14,8 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
+	"strings"
+	"reflect"
 )
 
 var jwtSecret []byte
@@ -70,6 +72,7 @@ func GenericListHandler[T any](
 		namespace := c.DefaultQuery("namespace", "")
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
 
 		items, err := listFunc(ctx, clientset, namespace)
 		if err != nil {
@@ -77,13 +80,71 @@ func GenericListHandler[T any](
 			return
 		}
 
-		paged := Paginate(items, offset, limit)
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredItems []T
+		if search != "" {
+			filteredItems = filterItemsBySearch(items, search)
+		} else {
+			filteredItems = items
+		}
+
+		// 对过滤后的数据进行分页
+		paged := Paginate(filteredItems, offset, limit)
 		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
-			Total:  len(items),
+			Total:  len(filteredItems), // 使用过滤后的总数
 			Limit:  limit,
 			Offset: offset,
 		})
 	}
+}
+
+// filterItemsBySearch 根据搜索关键词过滤项目
+// 这是一个通用的搜索过滤函数，支持常见的字段搜索
+func filterItemsBySearch[T any](items []T, search string) []T {
+	if search == "" {
+		return items
+	}
+
+	searchLower := strings.ToLower(search)
+	var filtered []T
+
+	for _, item := range items {
+		// 使用反射获取结构体字段值进行搜索
+		if matchesSearch(item, searchLower) {
+			filtered = append(filtered, item)
+		}
+	}
+
+	return filtered
+}
+
+// matchesSearch 检查单个项目是否匹配搜索关键词
+func matchesSearch[T any](item T, searchLower string) bool {
+	val := reflect.ValueOf(item)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return false
+	}
+
+	// 定义要搜索的字段名（这些字段通常是字符串类型且对用户有意义）
+	searchableFields := []string{"Name", "Namespace", "Status", "PodIP", "NodeName", "Image"}
+	
+	for _, fieldName := range searchableFields {
+		field := val.FieldByName(fieldName)
+		if field.IsValid() && field.CanInterface() {
+			fieldValue := field.Interface()
+			if str, ok := fieldValue.(string); ok {
+				if strings.Contains(strings.ToLower(str), searchLower) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 // GenericDetailHandler 通用详情处理函数

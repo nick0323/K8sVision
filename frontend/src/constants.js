@@ -1,5 +1,6 @@
 // 常量配置
 export const PAGE_SIZE = 20;
+export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]; // 新增：可选的每页行数选项
 export const EMPTY_TEXT = 'No data';
 export const LOADING_TEXT = 'Loading...';
 export const ERROR_TEXT = 'Load failed:';

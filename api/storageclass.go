@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -48,6 +49,7 @@ func getStorageClassList(
 		ctx := context.Background()
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		search := c.DefaultQuery("search", "") // 新增：搜索关键词
 
 		storageClassStatuses, err := listStorageClasses(ctx, clientset)
 		if err != nil {
@@ -55,9 +57,18 @@ func getStorageClassList(
 			return
 		}
 
-		paged := Paginate(storageClassStatuses, offset, limit)
+		// 新增：如果提供了搜索关键词，先进行搜索过滤
+		var filteredStorageClasses []model.StorageClassStatus
+		if search != "" {
+			filteredStorageClasses = filterStorageClassesBySearch(storageClassStatuses, search)
+		} else {
+			filteredStorageClasses = storageClassStatuses
+		}
+
+		// 对过滤后的数据进行分页
+		paged := Paginate(filteredStorageClasses, offset, limit)
 		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
-			Total:  len(storageClassStatuses),
+			Total:  len(filteredStorageClasses), // 使用过滤后的总数
 			Limit:  limit,
 			Offset: offset,
 		})
@@ -108,4 +119,24 @@ func getStorageClassDetail(
 		}
 		middleware.ResponseSuccess(c, storageClassDetail, "success", nil)
 	}
+}
+
+// filterStorageClassesBySearch 根据搜索关键词过滤StorageClass
+func filterStorageClassesBySearch(storageClasses []model.StorageClassStatus, search string) []model.StorageClassStatus {
+	if search == "" {
+		return storageClasses
+	}
+
+	searchLower := strings.ToLower(search)
+	var filtered []model.StorageClassStatus
+
+	for _, sc := range storageClasses {
+		// 检查StorageClass的各个字段是否匹配搜索关键词
+		if strings.Contains(strings.ToLower(sc.Name), searchLower) ||
+			strings.Contains(strings.ToLower(sc.Provisioner), searchLower) {
+			filtered = append(filtered, sc)
+		}
+	}
+
+	return filtered
 }

@@ -6,17 +6,39 @@ import NamespaceSelect from './components/NamespaceSelect';
 import PageHeader from './components/PageHeader';
 import ResourceDetailModal from './components/ResourceDetailModal';
 import { SEARCH_PLACEHOLDER, EMPTY_TEXT, PAGE_SIZE } from './constants';
-import { useFilterRows } from './utils';
 import Pagination from './Pagination';
+import { usePagination } from './hooks/usePagination';
+import { useSimpleSearch } from './hooks/useSimpleSearch';
 
 export default function CronJobsPage({ collapsed, onToggleCollapsed }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
   const [namespace, setNamespace] = useState('');
-  const [page, setPage] = useState(1);
-  const pageSize = PAGE_SIZE;
   const [pageMeta, setPageMeta] = useState({});
+
+  // 使用分页hook
+  const {
+    page,
+    pageSize,
+    handlePageChange,
+    handlePageSizeChange,
+    resetPagination,
+    pageSizeOptions
+  } = usePagination();
+
+  // 使用简化的搜索Hook
+  const {
+    search,
+    searchResults,
+    isSearching,
+    searchTotal,
+    hasSearched,
+    handleSearchChange,
+    handleSearchSubmit,
+    clearSearch,
+    hasSearchResults,
+    isSearchActive
+  } = useSimpleSearch('/api/cronjobs', namespace);
 
   // 详情模态框状态
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -42,12 +64,29 @@ export default function CronJobsPage({ collapsed, onToggleCollapsed }) {
         setPageMeta(res.page || {});
       })
       .catch(error => {
-        console.error('Failed to fetch CronJobs:', error);
         setData([]); // 出错时设置为空数组
         setPageMeta({});
       })
       .finally(() => setLoading(false));
   }, [page, pageSize, namespace]);
+
+  // 增强的搜索输入变化处理，空值时重新获取数据
+  const handleSearchInputChange = useCallback((e) => {
+    const value = e.target.value;
+    handleSearchChange(e);
+    
+    // 如果搜索框为空，清除搜索状态并重新获取原始数据
+    if (!value.trim()) {
+      clearSearch();
+      fetchData();
+    }
+  }, [handleSearchChange, clearSearch, fetchData]);
+
+  // 增强的清除搜索函数，会重新获取数据
+  const handleClearSearch = useCallback(() => {
+    clearSearch();
+    fetchData();
+  }, [clearSearch, fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -55,10 +94,8 @@ export default function CronJobsPage({ collapsed, onToggleCollapsed }) {
 
   // 当namespace变化时重置到第一页
   useEffect(() => {
-    setPage(1);
-  }, [namespace]);
-
-  const filteredRows = useFilterRows(data, ['namespace', 'name', 'status'], search);
+    resetPagination();
+  }, [namespace, resetPagination]);
 
   // 处理资源点击
   const handleResourceClick = (resource) => {
@@ -69,6 +106,10 @@ export default function CronJobsPage({ collapsed, onToggleCollapsed }) {
     });
     setDetailModalVisible(true);
   };
+
+  // 确定要显示的数据
+  const displayData = isSearchActive ? searchResults : data;
+  const totalCount = isSearchActive ? searchTotal : (pageMeta?.total || 0);
 
   return (
     <div>
@@ -85,10 +126,71 @@ export default function CronJobsPage({ collapsed, onToggleCollapsed }) {
         <SearchInput
           placeholder={SEARCH_PLACEHOLDER}
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={handleSearchInputChange}
+          onSubmit={handleSearchSubmit}
+          onClear={handleClearSearch}
+          isSearching={isSearching}
+          hasSearchResults={hasSearchResults}
+          showSearchButton={false}
+          showClearButton={false}
         />
         <RefreshButton onClick={fetchData} />
       </PageHeader>
+
+      {/* 搜索状态提示 */}
+      {isSearchActive && (
+        <div style={{
+          padding: '12px 16px',
+          margin: '8px 0',
+          background: searchTotal > 0 ? '#f0f8ff' : '#fff7e6',
+          border: `1px solid ${searchTotal > 0 ? '#d6e4ff' : '#ffd591'}`,
+          borderRadius: '6px',
+          fontSize: 'var(--font-size-sm)',
+          color: searchTotal > 0 ? '#1890ff' : '#d46b08'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🔍</span>
+              <span>
+                Search results for <strong>"{search}"</strong>: {
+                  searchTotal > 0 
+                    ? `Found ${searchTotal} matching resource${searchTotal > 1 ? 's' : ''}`
+                    : 'No matching resources found'
+                }
+              </span>
+              {searchTotal === 0 && (
+                <span style={{ fontSize: 'var(--font-size-xs)', opacity: 0.8 }}>
+                  💡 Try different keywords or partial names
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleClearSearch}
+              style={{
+                padding: '4px 12px',
+                fontSize: 'var(--font-size-xs)',
+                border: `1px solid ${searchTotal > 0 ? '#1890ff' : '#ffd591'}`,
+                borderRadius: '4px',
+                background: 'white',
+                color: searchTotal > 0 ? '#1890ff' : '#d46b08',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = searchTotal > 0 ? '#1890ff' : '#d46b08';
+                e.target.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.color = searchTotal > 0 ? '#1890ff' : '#d46b08';
+              }}
+            >
+              Clear Search
+            </button>
+          </div>
+        </div>
+      )}
+
       <CommonTable
         columns={[
           { 
@@ -109,38 +211,71 @@ export default function CronJobsPage({ collapsed, onToggleCollapsed }) {
           { title: 'Namespace', dataIndex: 'namespace', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Schedule', dataIndex: 'schedule', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'Suspend', dataIndex: 'suspend', render: (val, row, i, isTooltip) => {
+              if (isTooltip) return val ? 'Yes' : 'No';
+              
+              // Suspend状态标签
+              if (val) {
+                return <span className="status-tag status-failed">Yes</span>;  // 红色 - 已暂停
+              } else {
+                return <span className="status-tag status-ready">No</span>;   // 绿色 - 未暂停
+              }
+            } },
+          { title: 'Active', dataIndex: 'active', render: (val, row, i, isTooltip) => {
               if (isTooltip) return val;
-              return <span className={`status-tag ${val ? 'status-pending' : 'status-ready'}`}>
-                {val ? 'Yes' : 'No'}
-              </span>;
-            }
-          },
-          { title: 'Active', dataIndex: 'active', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
+              
+              // Active状态标签
+              const activeCount = parseInt(val) || 0;
+              if (activeCount > 0) {
+                return <span className="status-tag status-running">{val}</span>;  // 蓝色 - 有活跃任务
+              } else {
+                return <span className="status-tag status-pending">{val}</span>;  // 橙色 - 无活跃任务
+              }
+            } },
           { title: 'LastSchedule', dataIndex: 'lastScheduleTime', render: (val, row, i, isTooltip) => isTooltip ? val : <span>{val}</span> },
           { title: 'State', dataIndex: 'status', render: (val, row, i, isTooltip) => {
               if (isTooltip) return val;
-              const isReady = val === 'Running' || val === 'Succeeded';
-              const isPending = val === 'Pending';
+              
+              // CronJob状态判断逻辑 - 优化版本
+              const isRunning = val === 'Running' || val === 'Active';
+              const isSucceeded = val === 'Succeeded' || val === 'Completed';
+              const isPending = val === 'Pending' || val === 'Waiting';
+              const isFailed = val === 'Failed' || val === 'Error';
+              
               let statusClass = 'status-running';
-              if (isReady) statusClass = 'status-ready';
-              else if (isPending) statusClass = 'status-pending';
+              if (isSucceeded) {
+                statusClass = 'status-ready';        // 绿色 - 成功完成
+              } else if (isRunning) {
+                statusClass = 'status-running';      // 蓝色 - 正在运行
+              } else if (isPending) {
+                statusClass = 'status-pending';      // 橙色 - 等待中
+              } else if (isFailed) {
+                statusClass = 'status-failed';       // 红色 - 失败
+              }
+              
               return <span className={`status-tag ${statusClass}`}>{val}</span>;
             } },
         ]}
-        data={filteredRows}
+        data={displayData}
         pageSize={pageSize}
         currentPage={page}
-        onPageChange={setPage}
-        total={pageMeta?.total || filteredRows.length}
-        emptyText={EMPTY_TEXT}
+        onPageChange={handlePageChange}
+        total={totalCount}
+        emptyText={isSearchActive ? `No results found for "${search}"` : EMPTY_TEXT}
+        hasFixedPagination={false}
       />
-      <Pagination
-        currentPage={page}
-        total={pageMeta?.total || filteredRows.length}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        fixedBottom={true}
-      />
+
+      {/* 只在非搜索状态下显示分页 */}
+      {!isSearchActive && (
+        <Pagination
+          currentPage={page}
+          total={totalCount}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={pageSizeOptions}
+          fixedBottom={true}
+        />
+      )}
 
       {/* 资源详情模态框 */}
       <ResourceDetailModal

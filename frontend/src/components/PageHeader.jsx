@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { FaBars } from 'react-icons/fa';
 
 const PageHeader = ({ title, children, collapsed, onToggleCollapsed }) => {
