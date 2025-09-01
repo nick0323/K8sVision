@@ -3,12 +3,14 @@
 import { PREDEFINED_COLUMNS } from '../utils/tableUtils';
 
 // 通用配置生成器
-const createResourceConfig = (title, resourceType, columns, statusMap = {}) => ({
+const createResourceConfig = (title, resourceType, columns, statusMap = {}, tableConfig = {}, namespaceFilter = true) => ({
   title,
   apiEndpoint: `/api/${resourceType}`,
   resourceType,
   columns,
-  statusMap
+  statusMap,
+  tableConfig,
+  namespaceFilter
 });
 
 // Pods页面配置
@@ -58,7 +60,9 @@ export const CRONJOBS_CONFIG = createResourceConfig('CronJobs', 'cronjobs', [
   PREDEFINED_COLUMNS.name(),
   PREDEFINED_COLUMNS.namespace(),
   PREDEFINED_COLUMNS.custom('Schedule', 'schedule'),
-  PREDEFINED_COLUMNS.custom('Last Run', 'lastRun'),
+  PREDEFINED_COLUMNS.suspend(),
+  PREDEFINED_COLUMNS.custom('Last Schedule', 'lastScheduleTime'),
+  PREDEFINED_COLUMNS.custom('Active', 'active'),
   PREDEFINED_COLUMNS.status(),
 ]);
 
@@ -67,7 +71,10 @@ export const JOBS_CONFIG = createResourceConfig('Jobs', 'jobs', [
   PREDEFINED_COLUMNS.name(),
   PREDEFINED_COLUMNS.namespace(),
   PREDEFINED_COLUMNS.custom('Completions', 'completions'),
-  PREDEFINED_COLUMNS.custom('Parallelism', 'parallelism'),
+  PREDEFINED_COLUMNS.custom('Succeeded', 'succeeded'),
+  PREDEFINED_COLUMNS.custom('Failed', 'failed'),
+  PREDEFINED_COLUMNS.startTime(),
+  PREDEFINED_COLUMNS.completionTime(),
   PREDEFINED_COLUMNS.status(),
 ]);
 
@@ -75,9 +82,11 @@ export const JOBS_CONFIG = createResourceConfig('Jobs', 'jobs', [
 export const INGRESS_CONFIG = createResourceConfig('Ingresses', 'ingress', [
   PREDEFINED_COLUMNS.name(),
   PREDEFINED_COLUMNS.namespace(),
+  PREDEFINED_COLUMNS.class(),
   PREDEFINED_COLUMNS.hosts(),
-  PREDEFINED_COLUMNS.custom('Address', 'address'),
-  PREDEFINED_COLUMNS.status(),
+  PREDEFINED_COLUMNS.path(),
+  PREDEFINED_COLUMNS.targetService(),
+  PREDEFINED_COLUMNS.state(),
 ]);
 
 // Services页面配置
@@ -91,50 +100,64 @@ export const SERVICES_CONFIG = createResourceConfig('Services', 'services', [
 
 // Events页面配置
 export const EVENTS_CONFIG = createResourceConfig('Events', 'events', [
-  PREDEFINED_COLUMNS.name(),
-  PREDEFINED_COLUMNS.namespace(),
-  PREDEFINED_COLUMNS.type(),
+  PREDEFINED_COLUMNS.eventType(),
   PREDEFINED_COLUMNS.reason(),
   PREDEFINED_COLUMNS.message(),
+  PREDEFINED_COLUMNS.eventName(),
+  PREDEFINED_COLUMNS.namespace(),
   PREDEFINED_COLUMNS.lastTimestamp(),
-]);
+  PREDEFINED_COLUMNS.duration(),
+  PREDEFINED_COLUMNS.count(),
+], {}, {
+  // 特殊表格配置：允许内容换行展示
+  className: 'events-table-wrap-content',
+  scroll: false,
+  wrap: true
+});
 
 // PVCs页面配置
-export const PVCS_CONFIG = createResourceConfig('PVCs', 'pvcs', [
+export const PVCS_CONFIG = createResourceConfig('PersistentVolumeClaims', 'pvcs', [
   PREDEFINED_COLUMNS.name(),
   PREDEFINED_COLUMNS.namespace(),
-  PREDEFINED_COLUMNS.status(),
+  PREDEFINED_COLUMNS.pvcState(),
+  PREDEFINED_COLUMNS.volumeName(),
   PREDEFINED_COLUMNS.capacity(),
   PREDEFINED_COLUMNS.accessMode(),
   PREDEFINED_COLUMNS.storageClass(),
 ]);
 
-// PVs页面配置
-export const PVS_CONFIG = createResourceConfig('PVs', 'pvs', [
+// PVs页面配置 - 集群级别资源
+export const PVS_CONFIG = createResourceConfig('PersistentVolumes', 'pvs', [
   PREDEFINED_COLUMNS.name(),
-  PREDEFINED_COLUMNS.status(),
+  PREDEFINED_COLUMNS.pvState(),
   PREDEFINED_COLUMNS.capacity(),
   PREDEFINED_COLUMNS.accessMode(),
   PREDEFINED_COLUMNS.storageClass(),
-  PREDEFINED_COLUMNS.custom('Claim', 'claim'),
-]);
+  PREDEFINED_COLUMNS.claimRef(),
+  PREDEFINED_COLUMNS.reclaimPolicy(),
+], {}, {}, false); // 集群级别资源，不需要namespace筛选器
 
-// StorageClasses页面配置
+// StorageClasses页面配置 - 集群级别资源
 export const STORAGECLASSES_CONFIG = createResourceConfig('StorageClasses', 'storageclasses', [
   PREDEFINED_COLUMNS.name(),
   PREDEFINED_COLUMNS.custom('Provisioner', 'provisioner'),
-  PREDEFINED_COLUMNS.custom('Reclaim Policy', 'reclaimPolicy'),
-  PREDEFINED_COLUMNS.custom('Volume Binding Mode', 'volumeBindingMode'),
-  PREDEFINED_COLUMNS.allowVolumeExpansion(),
-]);
+  PREDEFINED_COLUMNS.custom('ReclaimPolicy', 'reclaimPolicy'),
+  PREDEFINED_COLUMNS.custom('VolumeBindingMode', 'volumeBindingMode'),
+  PREDEFINED_COLUMNS.isDefault(),
+], {}, {}, false); // 集群级别资源，不需要namespace筛选器
 
 // ConfigMaps页面配置
 export const CONFIGMAPS_CONFIG = createResourceConfig('ConfigMaps', 'configmaps', [
   PREDEFINED_COLUMNS.name(),
   PREDEFINED_COLUMNS.namespace(),
   PREDEFINED_COLUMNS.data(),
-  PREDEFINED_COLUMNS.created(),
-]);
+  PREDEFINED_COLUMNS.keys(),
+], {}, {
+  // 特殊表格配置：允许内容换行展示
+  className: 'configmaps-table-wrap-content',
+  scroll: false,
+  wrap: true
+});
 
 // Secrets页面配置
 export const SECRETS_CONFIG = createResourceConfig('Secrets', 'secrets', [
@@ -142,26 +165,25 @@ export const SECRETS_CONFIG = createResourceConfig('Secrets', 'secrets', [
   PREDEFINED_COLUMNS.namespace(),
   PREDEFINED_COLUMNS.type(),
   PREDEFINED_COLUMNS.data(),
-  PREDEFINED_COLUMNS.created(),
+  PREDEFINED_COLUMNS.keys(),
 ]);
 
-// Namespaces页面配置
+// Namespaces页面配置 - 集群级别资源
 export const NAMESPACES_CONFIG = createResourceConfig('Namespaces', 'namespaces', [
   PREDEFINED_COLUMNS.name(),
   PREDEFINED_COLUMNS.status(),
-  PREDEFINED_COLUMNS.age(),
-  PREDEFINED_COLUMNS.labels(),
-]);
+], {}, {}, false); // 集群级别资源，不需要namespace筛选器
 
-// Nodes页面配置
+// Nodes页面配置 - 集群级别资源
 export const NODES_CONFIG = createResourceConfig('Nodes', 'nodes', [
   PREDEFINED_COLUMNS.name(),
-  PREDEFINED_COLUMNS.status(),
-  PREDEFINED_COLUMNS.roles(),
-  PREDEFINED_COLUMNS.age(),
-  PREDEFINED_COLUMNS.version(),
   PREDEFINED_COLUMNS.internalIP(),
-]);
+  PREDEFINED_COLUMNS.roles(),
+  PREDEFINED_COLUMNS.cpuUsage(),
+  PREDEFINED_COLUMNS.memoryUsage(),
+  PREDEFINED_COLUMNS.pods(),
+  PREDEFINED_COLUMNS.status(),
+], {}, {}, false); // 集群级别资源，不需要namespace筛选器
 
 // 开发环境下的配置验证
 if (process.env.NODE_ENV === 'development') {

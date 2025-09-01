@@ -23,8 +23,8 @@ func RegisterIngress(
 	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
 	listIngresses func(context.Context, *kubernetes.Clientset, string) ([]model.IngressStatus, error),
 ) {
-	r.GET("/ingresses", getIngressList(logger, getK8sClient, listIngresses))
-	r.GET("/ingresses/:namespace/:name", getIngressDetail(logger, getK8sClient))
+	r.GET("/ingress", getIngressList(logger, getK8sClient, listIngresses))
+	r.GET("/ingress/:namespace/:name", getIngressDetail(logger, getK8sClient))
 }
 
 // getIngressList 获取Ingress列表的处理函数
@@ -37,7 +37,7 @@ func RegisterIngress(
 // @Param offset query int false "偏移量"
 // @Param search query string false "搜索关键词（支持名称、命名空间、主机等字段搜索）"
 // @Success 200 {object} model.APIResponse
-// @Router /ingresses [get]
+// @Router /ingress [get]
 func getIngressList(
 	logger *zap.Logger,
 	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
@@ -110,7 +110,7 @@ func filterIngressesBySearch(ingresses []model.IngressStatus, search string) []m
 // @Param namespace path string true "命名空间"
 // @Param name path string true "Ingress 名称"
 // @Success 200 {object} model.APIResponse
-// @Router /ingresses/{namespace}/{name} [get]
+// @Router /ingress/{namespace}/{name} [get]
 func getIngressDetail(
 	logger *zap.Logger,
 	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),

@@ -1,271 +1,162 @@
 # K8sVision API 文档
 
-欢迎使用 K8sVision API 文档！本文档提供了完整的 RESTful API 接口说明。
+## 概述
 
-## 📋 目录
+K8sVision 是一个 Kubernetes 集群管理平台，提供完整的集群资源监控和管理功能。
 
-- [认证说明](./authentication.md) - JWT 认证和权限控制
-- [错误处理](./errors.md) - 错误代码和响应格式
-- [通用接口](./common.md) - 通用响应格式和分页
-- [资源接口](./resources/README.md) - 各资源类型的 API
-- [监控接口](./monitoring.md) - 监控和指标接口
+## API 特性
 
-## 🚀 快速开始
+### 认证
+- 基于 JWT 的认证机制
+- 支持登录限流保护（连续失败5次10分钟内禁止尝试）
 
-### 基础信息
-- **Base URL**: `http://localhost:8080/api`
-- **协议**: HTTP/HTTPS
-- **数据格式**: JSON
-- **认证方式**: JWT Bearer Token
+### 分页支持
+所有列表API都支持分页查询：
+- `limit`: 每页数量（默认20）
+- `offset`: 偏移量（默认0）
 
-### 认证流程
-1. 调用登录接口获取 Token
-2. 在请求头中携带 Token
-3. 访问受保护的资源接口
+### 搜索功能
+大部分列表API现在支持关键词搜索，支持以下字段搜索：
 
-### 示例请求
-```bash
-# 1. 登录获取 Token
-curl -X POST http://localhost:8080/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"12345678"}'
+#### 工作负载资源
+- **Deployments**: 名称、命名空间、状态等
+- **StatefulSets**: 名称、命名空间、状态等  
+- **DaemonSets**: 名称、命名空间、状态等
+- **Jobs**: 名称、命名空间、状态等
+- **CronJobs**: 名称、命名空间、状态等
 
-# 2. 使用 Token 访问资源
-curl -X GET http://localhost:8080/api/nodes \
-  -H "Authorization: Bearer <your-token>"
-```
+#### 网络资源
+- **Services**: 名称、命名空间、类型等
+- **Ingress**: 名称、命名空间、主机等
+- **Pods**: 名称、命名空间、状态、PodIP、节点等
 
-## 📊 API 概览
+#### 存储资源
+- **PVCs**: 名称、命名空间、状态等
+- **PVs**: 名称、状态、存储类等
+- **StorageClasses**: 名称、供应者等
 
-### 认证接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/login` | POST | 用户登录 | 否 |
+#### 配置资源
+- **ConfigMaps**: 名称、命名空间等
+- **Secrets**: 名称、命名空间、类型等
 
-### 集群管理接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/overview` | GET | 集群概览 | 是 |
-| `/api/events` | GET | 事件列表 | 是 |
+#### 集群资源
+- **Nodes**: 名称、状态、角色等
+- **Namespaces**: 名称等
+- **Events**: 名称、命名空间、原因、消息等
 
-### 计算资源接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/nodes` | GET | 节点列表 | 是 |
-| `/api/nodes/{name}` | GET | 节点详情 | 是 |
-| `/api/pods` | GET | Pod 列表 | 是 |
-| `/api/pods/{namespace}/{name}` | GET | Pod 详情 | 是 |
+## API 端点
 
-### 工作负载接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/deployments` | GET | Deployment 列表 | 是 |
-| `/api/deployments/{namespace}/{name}` | GET | Deployment 详情 | 是 |
-| `/api/statefulsets` | GET | StatefulSet 列表 | 是 |
-| `/api/statefulsets/{namespace}/{name}` | GET | StatefulSet 详情 | 是 |
-| `/api/daemonsets` | GET | DaemonSet 列表 | 是 |
-| `/api/daemonsets/{namespace}/{name}` | GET | DaemonSet 详情 | 是 |
+### 认证
+- `POST /api/login` - 用户登录
 
-### 网络资源接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/services` | GET | Service 列表 | 是 |
-| `/api/services/{namespace}/{name}` | GET | Service 详情 | 是 |
-| `/api/ingresses` | GET | Ingress 列表 | 是 |
-| `/api/ingresses/{namespace}/{name}` | GET | Ingress 详情 | 是 |
+### 集群概览
+- `GET /api/overview` - 获取集群资源总览
 
-### 存储资源接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/pvcs` | GET | PVC 列表 | 是 |
-| `/api/pvcs/{namespace}/{name}` | GET | PVC 详情 | 是 |
-| `/api/pvs` | GET | PV 列表 | 是 |
-| `/api/pvs/{name}` | GET | PV 详情 | 是 |
-| `/api/storageclasses` | GET | StorageClass 列表 | 是 |
+### 工作负载
+- `GET /api/deployments` - 获取 Deployment 列表
+- `GET /api/deployments/{namespace}/{name}` - 获取 Deployment 详情
+- `GET /api/statefulsets` - 获取 StatefulSet 列表
+- `GET /api/statefulsets/{namespace}/{name}` - 获取 StatefulSet 详情
+- `GET /api/daemonsets` - 获取 DaemonSet 列表
+- `GET /api/daemonsets/{namespace}/{name}` - 获取 DaemonSet 详情
+- `GET /api/jobs` - 获取 Job 列表
+- `GET /api/jobs/{namespace}/{name}` - 获取 Job 详情
+- `GET /api/cronjobs` - 获取 CronJob 列表
+- `GET /api/cronjobs/{namespace}/{name}` - 获取 CronJob 详情
 
-### 配置资源接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/configmaps` | GET | ConfigMap 列表 | 是 |
-| `/api/configmaps/{namespace}/{name}` | GET | ConfigMap 详情 | 是 |
-| `/api/secrets` | GET | Secret 列表 | 是 |
-| `/api/secrets/{namespace}/{name}` | GET | Secret 详情 | 是 |
+### 网络
+- `GET /api/pods` - 获取 Pod 列表
+- `GET /api/pods/{namespace}/{name}` - 获取 Pod 详情
+- `GET /api/services` - 获取 Service 列表
+- `GET /api/services/{namespace}/{name}` - 获取 Service 详情
+- `GET /api/ingress` - 获取 Ingress 列表
+- `GET /api/ingress/{namespace}/{name}` - 获取 Ingress 详情
 
-### 工作负载接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/jobs` | GET | Job 列表 | 是 |
-| `/api/jobs/{namespace}/{name}` | GET | Job 详情 | 是 |
-| `/api/cronjobs` | GET | CronJob 列表 | 是 |
-| `/api/cronjobs/{namespace}/{name}` | GET | CronJob 详情 | 是 |
+### 存储
+- `GET /api/pvcs` - 获取 PVC 列表
+- `GET /api/pvcs/{namespace}/{name}` - 获取 PVC 详情
+- `GET /api/pvs` - 获取 PV 列表
+- `GET /api/pvs/{name}` - 获取 PV 详情
+- `GET /api/storageclasses` - 获取 StorageClass 列表
+- `GET /api/storageclasses/{name}` - 获取 StorageClass 详情
 
-### 监控接口
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/metrics` | GET | 性能指标 | 否 |
-| `/cache/stats` | GET | 缓存统计 | 否 |
+### 配置
+- `GET /api/configmaps` - 获取 ConfigMap 列表
+- `GET /api/configmaps/{namespace}/{name}` - 获取 ConfigMap 详情
+- `GET /api/secrets` - 获取 Secret 列表
+- `GET /api/secrets/{namespace}/{name}` - 获取 Secret 详情
 
-## 🔐 认证说明
+### 集群管理
+- `GET /api/nodes` - 获取 Node 列表
+- `GET /api/nodes/{name}` - 获取 Node 详情
+- `GET /api/namespaces` - 获取 Namespace 列表
+- `GET /api/namespaces/{name}` - 获取 Namespace 详情
+- `GET /api/events` - 获取 Event 列表
+- `GET /api/events/{namespace}/{name}` - 获取 Event 详情
 
-### JWT Token 格式
-```
-Authorization: Bearer <jwt-token>
-```
+## 响应格式
 
-### Token 结构
-```json
-{
-  "username": "admin",
-  "exp": 1703123456,
-  "iat": 1703037056
-}
-```
+所有API都返回统一的响应格式：
 
-### 登录接口
-```bash
-POST /api/login
-Content-Type: application/json
-
-{
-  "username": "admin",
-  "password": "12345678"
-}
-```
-
-### 响应格式
 ```json
 {
   "code": 0,
-  "message": "登录成功",
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  },
-  "timestamp": "2024-12-20T10:30:56Z"
-}
-```
-
-## 📝 通用响应格式
-
-### 成功响应
-```json
-{
-  "code": 0,
-  "message": "操作成功",
-  "data": {
-    // 具体数据
-  },
+  "message": "success",
+  "data": {},
   "page": {
     "total": 100,
-    "limit": 10,
+    "limit": 20,
     "offset": 0
   },
-  "timestamp": "2024-12-20T10:30:56Z"
+  "timestamp": 1640995200,
+  "traceId": "abc123"
 }
 ```
 
-### 错误响应
-```json
-{
-  "code": 400,
-  "message": "参数错误",
-  "details": "用户名和密码不能为空",
-  "timestamp": "2024-12-20T10:30:56Z"
-}
-```
+## 使用示例
 
-## 🔍 查询参数
-
-### 分页参数
-| 参数 | 类型 | 说明 | 默认值 |
-|------|------|------|--------|
-| `limit` | int | 每页数量 | 10 |
-| `offset` | int | 偏移量 | 0 |
-
-### 过滤参数
-| 参数 | 类型 | 说明 | 示例 |
-|------|------|------|------|
-| `namespace` | string | 命名空间过滤 | `default` |
-| `labelSelector` | string | 标签选择器 | `app=nginx` |
-| `fieldSelector` | string | 字段选择器 | `status.phase=Running` |
-
-### 排序参数
-| 参数 | 类型 | 说明 | 示例 |
-|------|------|------|------|
-| `sortBy` | string | 排序字段 | `name` |
-| `sortOrder` | string | 排序方向 | `asc` 或 `desc` |
-
-## 🚨 错误处理
-
-### HTTP 状态码
-- `200` - 成功
-- `400` - 请求参数错误
-- `401` - 未认证
-- `403` - 权限不足
-- `404` - 资源不存在
-- `429` - 请求频率限制
-- `500` - 服务器内部错误
-
-### 错误代码
-| 代码 | 说明 | HTTP 状态码 |
-|------|------|-------------|
-| `0` | 成功 | 200 |
-| `400` | 参数错误 | 400 |
-| `401` | 未认证 | 401 |
-| `403` | 权限不足 | 403 |
-| `404` | 资源不存在 | 404 |
-| `429` | 请求频率限制 | 429 |
-| `500` | 服务器内部错误 | 500 |
-
-## 📊 数据模型
-
-### 通用字段
-所有资源都包含以下通用字段：
-- `name` - 资源名称
-- `namespace` - 命名空间（集群级资源除外）
-- `labels` - 标签
-- `annotations` - 注解
-- `creationTimestamp` - 创建时间
-- `status` - 状态
-
-### 状态字段
-- `Running` - 运行中
-- `Pending` - 等待中
-- `Failed` - 失败
-- `Succeeded` - 成功
-- `Unknown` - 未知
-
-## 🔧 开发工具
-
-### Swagger 文档
-访问 http://localhost:8080/swagger/index.html 查看交互式 API 文档。
-
-### 健康检查
+### 搜索Deployments
 ```bash
-curl http://localhost:8080/healthz
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8080/api/deployments?search=nginx&limit=10&offset=0"
 ```
 
-### 性能指标
+### 分页查询Pods
 ```bash
-curl http://localhost:8080/metrics
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8080/api/pods?namespace=default&limit=20&offset=40"
 ```
 
-## 📞 支持
+### 获取集群概览
+```bash
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8080/api/overview"
+```
 
-如果您在使用 API 时遇到问题，请：
+## 更新日志
 
-1. 查看 [错误处理](./errors.md) 文档
-2. 检查 [常见问题](../troubleshooting/faq.md)
-3. 提交 [GitHub Issue](https://github.com/nick0323/K8sVision/issues)
+### v1.0 (最新)
+- 新增搜索功能支持，所有列表API现在支持关键词搜索
+- 更新API描述，明确说明分页和搜索功能
+- 优化swagger文档结构，提供更详细的参数说明
 
-## 📚 相关文档
+## 开发说明
 
-- [认证说明](./authentication.md)
-- [错误处理](./errors.md)
-- [通用接口](./common.md)
-- [资源接口](./resources/README.md)
-- [监控接口](./monitoring.md)
+### 本地开发
+```bash
+# 启用swagger文档
+export SWAGGER_ENABLE=true
 
----
+# 启动服务
+go run main.go
 
-**API 版本**: v1.0.0  
-**最后更新**: 2024年12月 
+# 访问swagger文档
+http://localhost:8080/swagger/index.html
+```
+
+### 生成swagger文档
+项目使用 `swag` 工具生成swagger文档，确保在修改API后重新生成文档。
+
+## 支持
+
+如有问题或建议，请提交Issue或联系开发团队。 

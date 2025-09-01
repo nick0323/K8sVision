@@ -38,7 +38,7 @@ func init() {
 
 // LoginHandler 登录接口
 // @Summary 用户登录
-// @Description 登录获取 JWT Token，连续失败5次10分钟内禁止尝试
+// @Description 登录获取 JWT Token，连续失败5次后10分钟内禁止尝试
 // @Tags Auth
 // @Accept json
 // @Produce json

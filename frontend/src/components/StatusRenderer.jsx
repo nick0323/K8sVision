@@ -25,7 +25,7 @@ export function createStatusRenderer(statusMap = {}) {
                      value === 'Healthy' || value === 'Normal' || value === 'Active' || 
                      value === 'Bound' || value === 'Available';
     const isFailed = value === 'Failed' || value === 'Error' || value === 'CrashLoopBackOff' || 
-                     value === 'Unhealthy';
+                     value === 'Unhealthy' || value === 'Warning';
     const isPending = value === 'Pending' || value === 'ContainerCreating' || 
                      value === 'PodInitializing' || value === 'Creating';
     
@@ -56,7 +56,7 @@ export function StatusTag({ value, className = '', size = 'default' }) {
                    value === 'Healthy' || value === 'Normal' || value === 'Active' || 
                    value === 'Bound' || value === 'Available';
   const isFailed = value === 'Failed' || value === 'Error' || value === 'CrashLoopBackOff' || 
-                   value === 'Unhealthy';
+                   value === 'Unhealthy' || value === 'Warning';
   const isPending = value === 'Pending' || value === 'ContainerCreating' || 
                    value === 'PodInitializing' || value === 'Creating';
   

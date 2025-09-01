@@ -17,42 +17,42 @@ export const MENU_LIST = [
   {
     group: 'Workloads',
     items: [
-      { key: 'pods', label: 'Pods', icon: 'FaCubes' },
-      { key: 'deployments', label: 'Deployments', icon: 'FaLayerGroup' },
-      { key: 'statefulsets', label: 'StatefulSets', icon: 'FaDatabase' },
-      { key: 'daemonsets', label: 'DaemonSets', icon: 'FaShieldAlt' },
-      { key: 'jobs', label: 'Jobs', icon: 'FaTasks' },
-      { key: 'cronjobs', label: 'CronJobs', icon: 'FaRegClock' },
+      { key: 'pods', label: 'Pod', icon: 'FaCubes' },
+      { key: 'deployments', label: 'Deployment', icon: 'FaLayerGroup' },
+      { key: 'statefulsets', label: 'StatefulSet', icon: 'FaDatabase' },
+      { key: 'daemonsets', label: 'DaemonSet', icon: 'FaShieldAlt' },
+      { key: 'jobs', label: 'Job', icon: 'FaTasks' },
+      { key: 'cronjobs', label: 'CronJob', icon: 'FaRegClock' },
     ],
   },
   {
     group: 'Traffic',
     items: [
-      { key: 'ingress', label: 'Ingresses', icon: 'FaNetworkWired' },
-      { key: 'services', label: 'Services', icon: 'FaProjectDiagram' },
+      { key: 'ingress', label: 'Ingress', icon: 'FaNetworkWired' },
+      { key: 'services', label: 'Service', icon: 'FaProjectDiagram' },
     ],
   },
   {
     group: 'Storage',
     items: [
-      { key: 'pvcs', label: 'PVCs', icon: 'FaBoxOpen' },
-      { key: 'pvs', label: 'PVs', icon: 'FaHdd' },
-      { key: 'storageclasses', label: 'StorageClasses', icon: 'FaBoxes' },
+      { key: 'pvcs', label: 'PVC', icon: 'FaBoxOpen' },
+      { key: 'pvs', label: 'PV', icon: 'FaHdd' },
+      { key: 'storageclasses', label: 'StorageClass', icon: 'FaBoxes' },
     ],
   },
   {
     group: 'Config',
     items: [
-      { key: 'configmaps', label: 'ConfigMaps', icon: 'FaCog' },
-      { key: 'secrets', label: 'Secrets', icon: 'FaKey' },
+      { key: 'configmaps', label: 'ConfigMap', icon: 'FaCog' },
+      { key: 'secrets', label: 'Secret', icon: 'FaKey' },
     ],
   },
   {
     group: 'Others',
     items: [
-      { key: 'namespaces', label: 'Namespaces', icon: 'LuSquareDashed' },
-      { key: 'nodes', label: 'Nodes', icon: 'FaDesktop' },
-      { key: 'events', label: 'Events', icon: 'FaBell' },
+      { key: 'namespaces', label: 'Namespace', icon: 'LuSquareDashed' },
+      { key: 'nodes', label: 'Node', icon: 'FaDesktop' },
+      { key: 'events', label: 'Event', icon: 'FaBell' },
     ],
   },
 ];
@@ -86,6 +86,7 @@ export const DETAIL_API_MAP = {
   pods: '/api/pods',
   nodes: '/api/nodes',
   services: '/api/services',
+  ingress: '/api/ingress',
   // 存储资源详情API
   pvcs: '/api/pvcs',
   pvs: '/api/pvs',

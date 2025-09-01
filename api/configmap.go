@@ -16,7 +16,7 @@ import (
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
-// RegisterConfigMap 注册 ConfigMap 相关路由
+// RegisterConfigMap 注册 ConfigMap 相关路由，包括列表和详情接口
 func RegisterConfigMap(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
@@ -35,7 +35,7 @@ func RegisterConfigMap(
 // @Param namespace query string false "命名空间"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
-// @Param search query string false "搜索关键词（支持名称、命名空间、数据等字段搜索）"
+// @Param search query string false "搜索关键词（支持名称、命名空间、数据数量等字段搜索）"
 // @Success 200 {object} model.APIResponse
 // @Router /configmaps [get]
 func getConfigMapList(
@@ -53,7 +53,7 @@ func getConfigMapList(
 		namespace := c.DefaultQuery("namespace", "")
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-		search := c.DefaultQuery("search", "") // 新增：搜索关键词
+		search := c.DefaultQuery("search", "")
 
 		configMaps, err := listConfigMaps(ctx, clientset, namespace)
 		if err != nil {
@@ -61,7 +61,6 @@ func getConfigMapList(
 			return
 		}
 
-		// 新增：如果提供了搜索关键词，先进行搜索过滤
 		var filteredConfigMaps []model.ConfigMapStatus
 		if search != "" {
 			filteredConfigMaps = filterConfigMapsBySearch(configMaps, search)
@@ -69,10 +68,9 @@ func getConfigMapList(
 			filteredConfigMaps = configMaps
 		}
 
-		// 对过滤后的数据进行分页
 		paged := Paginate(filteredConfigMaps, offset, limit)
 		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
-			Total:  len(filteredConfigMaps), // 使用过滤后的总数
+			Total:  len(filteredConfigMaps),
 			Limit:  limit,
 			Offset: offset,
 		})

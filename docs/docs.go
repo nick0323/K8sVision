@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -22,7 +31,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取ConfigMap列表，支持分页",
+                "description": "获取ConfigMap列表，支持分页和搜索",
                 "tags": [
                     "ConfigMap"
                 ],
@@ -44,6 +53,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、数据数量等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -102,7 +117,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "支持分页",
+                "description": "获取CronJob列表，支持分页和搜索",
                 "tags": [
                     "CronJob"
                 ],
@@ -125,6 +140,12 @@ const docTemplate = `{
                         "description": "偏移量",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、状态等字段搜索）",
+                        "name": "search",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -144,7 +165,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定命名空间下的 CronJob 详情",
+                "description": "获取指定命名空间下的CronJob详情",
                 "tags": [
                     "CronJob"
                 ],
@@ -182,12 +203,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "支持分页",
+                "description": "获取DaemonSet列表，支持分页和搜索",
                 "tags": [
                     "DaemonSet"
                 ],
                 "summary": "获取 DaemonSet 列表",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "每页数量",
@@ -202,8 +229,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "命名空间",
-                        "name": "namespace",
+                        "description": "搜索关键词（支持名称、命名空间、状态等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -224,7 +251,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定命名空间下的 DaemonSet 详情",
+                "description": "获取指定命名空间下的DaemonSet详情",
                 "tags": [
                     "DaemonSet"
                 ],
@@ -262,7 +289,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取Deployment列表，支持分页",
+                "description": "获取Deployment列表，支持分页和搜索",
                 "tags": [
                     "Deployment"
                 ],
@@ -284,6 +311,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、状态等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -342,7 +375,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "支持分页",
+                "description": "获取Event列表，支持分页和搜索",
                 "tags": [
                     "Event"
                 ],
@@ -365,6 +398,12 @@ const docTemplate = `{
                         "description": "偏移量",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、原因等字段搜索）",
+                        "name": "search",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -384,7 +423,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定命名空间下的 Event 详情",
+                "description": "获取指定命名空间下的Event详情",
                 "tags": [
                     "Event"
                 ],
@@ -422,7 +461,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取Ingress列表，支持分页",
+                "description": "获取Ingress列表，支持分页和搜索",
                 "tags": [
                     "Ingress"
                 ],
@@ -444,6 +483,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、主机等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -502,7 +547,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "支持分页",
+                "description": "获取Job列表，支持分页和搜索",
                 "tags": [
                     "Job"
                 ],
@@ -525,6 +570,12 @@ const docTemplate = `{
                         "description": "偏移量",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、状态等字段搜索）",
+                        "name": "search",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -544,7 +595,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定命名空间下的 Job 详情",
+                "description": "获取指定命名空间下的Job详情",
                 "tags": [
                     "Job"
                 ],
@@ -577,7 +628,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "登录获取 JWT Token，连续失败5次10分钟内禁止尝试",
+                "description": "登录获取 JWT Token，连续失败5次后10分钟内禁止尝试",
                 "consumes": [
                     "application/json"
                 ],
@@ -601,39 +652,27 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "{token: JWT}",
+                        "description": "登录成功",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/model.APIResponse"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/model.APIResponse"
                         }
                     },
                     "401": {
                         "description": "用户名或密码错误",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/model.APIResponse"
                         }
                     },
                     "429": {
                         "description": "登录失败次数过多",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/model.APIResponse"
                         }
                     }
                 }
@@ -816,7 +855,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取Pod列表，支持分页",
+                "description": "获取Pod列表，支持分页和搜索",
                 "tags": [
                     "Pod"
                 ],
@@ -838,6 +877,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、状态、PodIP、节点等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -1043,7 +1088,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取Secret列表，支持分页",
+                "description": "获取Secret列表，支持分页和搜索",
                 "tags": [
                     "Secret"
                 ],
@@ -1065,6 +1110,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、类型等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -1123,7 +1174,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取Service列表，支持分页",
+                "description": "获取Service列表，支持分页和搜索",
                 "tags": [
                     "Service"
                 ],
@@ -1145,6 +1196,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、类型等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -1203,7 +1260,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取StatefulSet列表，支持分页",
+                "description": "获取StatefulSet列表，支持分页和搜索",
                 "tags": [
                     "StatefulSet"
                 ],
@@ -1225,6 +1282,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "偏移量",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词（支持名称、命名空间、状态等字段搜索）",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -1395,6 +1458,7 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
+            "description": "输入 \"Bearer \" 加上JWT token，例如: \"Bearer abcde12345\"",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"

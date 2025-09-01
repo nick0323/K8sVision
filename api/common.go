@@ -4,23 +4,21 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
+	"reflect"
 
 	"github.com/nick0323/K8sVision/model"
 	"github.com/nick0323/K8sVision/api/middleware"
-
-	"os"
-
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
-	"strings"
-	"reflect"
+	"os"
 )
 
 var jwtSecret []byte
 
-// InitJWTSecret 初始化 JWT 密钥，优先环境变量，其次配置管理器，最后默认
+// InitJWTSecret 初始化JWT 密钥，优先环境变量，其次配置管理器，最后默认值
 func InitJWTSecret() {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {

@@ -104,6 +104,28 @@ export function createTimeRenderer() {
   };
 }
 
+// 详细时间渲染器（显示完整日期时间格式，上海时间）
+export function createDetailedTimeRenderer() {
+  return (value, row, index, isTooltip) => {
+    if (isTooltip) return value;
+    
+    if (!value) return '-';
+    
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      
+      // 转换为上海时间（东八区 UTC+8）
+      const shanghaiTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+      
+      // 显示完整的日期时间格式：YYYY-MM-DD HH:MM:SS
+      return shanghaiTime.toISOString().slice(0, 19).replace('T', ' ');
+    } catch (e) {
+      return value;
+    }
+  };
+}
+
 // 数字渲染器
 export function createNumberRenderer(suffix = '', formatter = null) {
   return (value, row, index, isTooltip) => {
@@ -125,12 +147,12 @@ export function createNumberRenderer(suffix = '', formatter = null) {
 // 布尔值渲染器
 export function createBooleanRenderer() {
   return (value, row, index, isTooltip) => {
-    if (isTooltip) return value ? 'Yes' : 'No';
+    if (isTooltip) return value ? 'true' : 'false';
     
     if (typeof value === 'boolean') {
       return (
         <span className={`boolean-tag ${value ? 'true' : 'false'}`}>
-          {value ? '✓' : '✗'}
+          {value ? 'true' : 'false'}
         </span>
       );
     }
@@ -148,13 +170,40 @@ export function createArrayRenderer(separator = ', ', maxItems = 3) {
     
     if (value.length === 0) return '-';
     
-    const displayItems = value.slice(0, maxItems);
-    const hasMore = value.length > maxItems;
+    // 去重并过滤空值
+    const uniqueValues = [...new Set(value.filter(item => item && item.trim()))];
+    
+    const displayItems = uniqueValues.slice(0, maxItems);
+    const hasMore = uniqueValues.length > maxItems;
     
     return (
       <span>
         {displayItems.join(separator)}
         {hasMore && <span className="more-items"> (+{value.length - maxItems})</span>}
+      </span>
+    );
+  };
+}
+
+// 去重数组渲染器
+export function createUniqueArrayRenderer(separator = ', ', maxItems = 3) {
+  return (value, row, index, isTooltip) => {
+    if (!Array.isArray(value)) return value || '-';
+    
+    if (value.length === 0) return '-';
+    
+    // 去重并过滤空值
+    const uniqueValues = [...new Set(value.filter(item => item && item.trim()))];
+    
+    if (isTooltip) return uniqueValues.join(separator);
+    
+    const displayItems = uniqueValues.slice(0, maxItems);
+    const hasMore = uniqueValues.length > maxItems;
+    
+    return (
+      <span>
+        {displayItems.join(separator)}
+        {hasMore && <span className="more-items"> (+{uniqueValues.length - maxItems})</span>}
       </span>
     );
   };
@@ -176,6 +225,23 @@ export function createUsageRenderer() {
       } else if (value.includes('Mi') || value.includes('Ki')) {
         // 内存
         return value;
+      }
+    }
+    
+    // 处理数值类型的百分比
+    if (typeof value === 'number' || !isNaN(Number(value))) {
+      const num = Number(value);
+      // 如果数值在0-100范围内，认为是百分比
+      if (num >= 0 && num <= 100) {
+        return `${num.toFixed(1)}%`;
+      }
+      // 如果数值大于100，可能是小数形式，转换为百分比
+      if (num > 1) {
+        return `${(num / 100).toFixed(1)}%`;
+      }
+      // 如果数值在0-1之间，直接转换为百分比
+      if (num >= 0 && num <= 1) {
+        return `${(num * 100).toFixed(1)}%`;
       }
     }
     

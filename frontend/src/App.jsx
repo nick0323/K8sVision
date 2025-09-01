@@ -7,26 +7,31 @@ import { MENU_LIST, API_MAP } from './constants';
 import LoginPage from './LoginPage';
 import { FiLogOut } from 'react-icons/fi';
 
-// 懒加载页面组件 - 添加预加载策略
+// 懒加载页面组件 - 使用统一的页面组件定义
 const OverviewPage = lazy(() => import('./OverviewPage'));
-const NamespacesPage = lazy(() => import('./NamespacesPage'));
-const NodesPage = lazy(() => import('./NodesPage'));
-const PodsPage = lazy(() => import('./PodsPage'));
-const DeploymentsPage = lazy(() => import('./DeploymentsPage'));
-const StatefulSetsPage = lazy(() => import('./StatefulSetsPage'));
-const DaemonSetsPage = lazy(() => import('./DaemonSetsPage'));
-const CronJobsPage = lazy(() => import('./CronJobsPage'));
-const JobsPage = lazy(() => import('./JobsPage'));
-const IngressPage = lazy(() => import('./IngressPage'));
-const ServicesPage = lazy(() => import('./ServicesPage'));
-const EventsPage = lazy(() => import('./EventsPage'));
-// 存储资源页面组件
-const PVCsPage = lazy(() => import('./PVCsPage'));
-const PVsPage = lazy(() => import('./PVsPage'));
-const StorageClassesPage = lazy(() => import('./StorageClassesPage'));
-// 配置资源页面组件
-const ConfigMapsPage = lazy(() => import('./ConfigMapsPage'));
-const SecretsPage = lazy(() => import('./SecretsPage'));
+
+// 导入页面组件
+import { PAGE_COMPONENTS } from './pages.jsx';
+
+// 解构页面组件
+const {
+  pods: PodsPage,
+  deployments: DeploymentsPage,
+  statefulsets: StatefulSetsPage,
+  daemonsets: DaemonSetsPage,
+  cronjobs: CronJobsPage,
+  jobs: JobsPage,
+  ingress: IngressPage,
+  services: ServicesPage,
+  events: EventsPage,
+  pvcs: PVCsPage,
+  pvs: PVsPage,
+  storageclasses: StorageClassesPage,
+  configmaps: ConfigMapsPage,
+  secrets: SecretsPage,
+  namespaces: NamespacesPage,
+  nodes: NodesPage
+} = PAGE_COMPONENTS;
 
 // 图标映射 - 使用useMemo优化
 const ICON_MAP = {
@@ -49,32 +54,15 @@ const ICON_MAP = {
   LuSquareDashed: <LuSquareDashed />,
 };
 
-// 页面组件映射 - 使用useMemo优化
-const PAGE_COMPONENTS = {
+// 页面组件映射 - 使用统一的页面组件
+const CURRENT_PAGE_COMPONENTS = {
   overview: OverviewPage,
-  namespaces: NamespacesPage,
-  nodes: NodesPage,
-  pods: PodsPage,
-  deployments: DeploymentsPage,
-  statefulsets: StatefulSetsPage,
-  daemonsets: DaemonSetsPage,
-  cronjobs: CronJobsPage,
-  jobs: JobsPage,
-  ingress: IngressPage,
-  services: ServicesPage,
-  events: EventsPage,
-  // 存储资源页面组件
-  pvcs: PVCsPage,
-  pvs: PVsPage,
-  storageclasses: StorageClassesPage,
-  // 配置资源页面组件
-  configmaps: ConfigMapsPage,
-  secrets: SecretsPage,
+  ...PAGE_COMPONENTS
 };
 
 // 预加载策略：当用户hover到菜单项时预加载对应组件
 const preloadComponent = (componentKey) => {
-  const Component = PAGE_COMPONENTS[componentKey];
+  const Component = CURRENT_PAGE_COMPONENTS[componentKey];
   if (Component && Component.preload) {
     Component.preload();
   }
@@ -217,7 +205,7 @@ export default function App() {
   
   // 使用useMemo优化当前页面组件
   const CurrentPage = useMemo(() => {
-    return PAGE_COMPONENTS[tab] || (() => <div style={{padding:32,textAlign:'center',color:'#888'}}>页面开发中</div>);
+    return CURRENT_PAGE_COMPONENTS[tab] || (() => <div style={{padding:32,textAlign:'center',color:'#888'}}>页面开发中</div>);
   }, [tab]);
   
   useEffect(() => {
@@ -317,9 +305,9 @@ export default function App() {
             size="lg"
             className="app-loading"
           />
-        }>
-          <CurrentPage collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
-        </Suspense>
+                              }>
+                        <CurrentPage collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
+                      </Suspense>
       </div>
       {collapsed && tip.visible && (
         <div style={{

@@ -26,7 +26,8 @@ export default function ResourcePage({
   onToggleCollapsed,
   statusMap = {}, // 状态映射对象
   extraActions = null, // 额外的操作按钮
-  searchPlaceholder = SEARCH_PLACEHOLDER
+  searchPlaceholder = SEARCH_PLACEHOLDER,
+  namespaceFilter = true // 是否需要namespace筛选器
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,7 +56,7 @@ export default function ResourcePage({
     clearSearch,
     hasSearchResults,
     isSearchActive
-  } = useSimpleSearch(apiEndpoint, namespace);
+  } = useSimpleSearch(apiEndpoint, namespaceFilter ? namespace : '');
 
   // 详情模态框状态
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -69,7 +70,7 @@ export default function ResourcePage({
       const response = await createPaginatedQuery(apiEndpoint, {
         page,
         pageSize,
-        namespace
+        namespace: namespaceFilter ? namespace : ''
       });
       
       const { data: dataList, page: pageInfo } = normalizeApiResponse(response);
@@ -82,7 +83,7 @@ export default function ResourcePage({
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, namespace, apiEndpoint]);
+  }, [page, pageSize, namespace, apiEndpoint, namespaceFilter]);
 
   // 增强的搜索输入变化处理，空值时重新获取数据
   const handleSearchInputChange = useCallback((e) => {
@@ -144,11 +145,14 @@ export default function ResourcePage({
         collapsed={collapsed}
         onToggleCollapsed={onToggleCollapsed}
       >
-        <NamespaceSelect
-          value={namespace}
-          onChange={setNamespace}
-          placeholder="All Namespaces"
-        />
+        {/* 只有需要namespace筛选器的资源才显示namespace选择器 */}
+        {namespaceFilter && (
+          <NamespaceSelect
+            value={namespace}
+            onChange={setNamespace}
+            placeholder="All Namespaces"
+          />
+        )}
         <SearchInput
           placeholder={searchPlaceholder}
           value={search}

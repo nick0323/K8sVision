@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -68,6 +70,9 @@ func getEventList(
 		} else {
 			filteredEvents = events
 		}
+
+		// 按LastSeen时间倒序排列（最新事件在前）
+		sortEventsByLastSeen(filteredEvents)
 
 		// 对过滤后的数据进行分页
 		paged := Paginate(filteredEvents, offset, limit)
@@ -145,4 +150,21 @@ func getEventDetail(
 		}
 		middleware.ResponseSuccess(c, eventDetail, "success", nil)
 	}
+}
+
+// sortEventsByLastSeen 按LastSeen时间倒序排列Events（最新事件在前）
+func sortEventsByLastSeen(events []model.EventStatus) {
+	sort.Slice(events, func(i, j int) bool {
+		// 解析时间字符串进行比较
+		timeI, errI := time.Parse("2006-01-02 15:04:05", events[i].LastSeen)
+		timeJ, errJ := time.Parse("2006-01-02 15:04:05", events[j].LastSeen)
+		
+		// 如果解析失败，保持原始顺序
+		if errI != nil || errJ != nil {
+			return false
+		}
+		
+		// 倒序排列：最新的时间在前
+		return timeI.After(timeJ)
+	})
 }

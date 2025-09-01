@@ -3,15 +3,18 @@
  * 消除重复的表格配置和逻辑
  */
 
+import React from 'react';
 import { 
   createNameRenderer, 
   createNamespaceRenderer, 
   createStatusRenderer, 
   createLabelsRenderer,
   createTimeRenderer,
+  createDetailedTimeRenderer,
   createNumberRenderer,
   createBooleanRenderer,
   createArrayRenderer,
+  createUniqueArrayRenderer,
   createUsageRenderer
 } from './commonRenderers.jsx';
 
@@ -22,9 +25,11 @@ export const COLUMN_TYPES = {
   STATUS: 'status',
   LABELS: 'labels',
   TIME: 'time',
+  DETAILED_TIME: 'detailed_time',
   NUMBER: 'number',
   BOOLEAN: 'boolean',
   ARRAY: 'array',
+  UNIQUE_ARRAY: 'unique_array',
   USAGE: 'usage',
   TEXT: 'text'
 };
@@ -59,6 +64,9 @@ export const createColumn = (title, dataIndex, type = COLUMN_TYPES.TEXT, options
       case COLUMN_TYPES.TIME:
         autoRender = createTimeRenderer();
         break;
+      case COLUMN_TYPES.DETAILED_TIME:
+        autoRender = createDetailedTimeRenderer();
+        break;
       case COLUMN_TYPES.NUMBER:
         autoRender = createNumberRenderer(options.suffix, options.formatter);
         break;
@@ -67,6 +75,9 @@ export const createColumn = (title, dataIndex, type = COLUMN_TYPES.TEXT, options
         break;
       case COLUMN_TYPES.ARRAY:
         autoRender = createArrayRenderer(options.separator, options.maxItems);
+        break;
+      case COLUMN_TYPES.UNIQUE_ARRAY:
+        autoRender = createUniqueArrayRenderer(options.separator, options.maxItems);
         break;
       case COLUMN_TYPES.USAGE:
         autoRender = createUsageRenderer();
@@ -91,8 +102,20 @@ export const createColumn = (title, dataIndex, type = COLUMN_TYPES.TEXT, options
 export const PREDEFINED_COLUMNS = {
   // 基础列
   name: (options = {}) => createColumn('Name', 'name', COLUMN_TYPES.NAME, options),
+  // Events页面专用的Name列（支持换行）
+  eventName: (options = {}) => createColumn('Name', 'name', COLUMN_TYPES.TEXT, {
+    render: (text) => React.createElement('div', {
+      style: { 
+        whiteSpace: 'pre-wrap', 
+        wordBreak: 'break-word',
+        maxWidth: '200px',
+        lineHeight: '1.4'
+      }
+    }, text),
+    ...options
+  }),
   namespace: (options = {}) => createColumn('Namespace', 'namespace', COLUMN_TYPES.NAMESPACE, options),
-  status: (options = {}) => createColumn('Status', 'status', COLUMN_TYPES.STATUS, options),
+  status: (options = {}) => createColumn('State', 'status', COLUMN_TYPES.STATUS, options),
   age: (options = {}) => createColumn('Age', 'age', COLUMN_TYPES.TIME, options),
   created: (options = {}) => createColumn('Created', 'created', COLUMN_TYPES.TIME, options),
   
@@ -113,28 +136,91 @@ export const PREDEFINED_COLUMNS = {
   
   // 存储相关列
   capacity: (options = {}) => createColumn('Capacity', 'capacity', COLUMN_TYPES.TEXT, options),
-  accessMode: (options = {}) => createColumn('Access Mode', 'accessMode', COLUMN_TYPES.TEXT, options),
-  storageClass: (options = {}) => createColumn('Storage Class', 'storageClass', COLUMN_TYPES.TEXT, options),
+  accessMode: (options = {}) => createColumn('AccessMode', 'accessMode', COLUMN_TYPES.TEXT, options),
+  storageClass: (options = {}) => createColumn('StorageClass', 'storageClass', COLUMN_TYPES.TEXT, options),
+  volumeName: (options = {}) => createColumn('Volume', 'volumeName', COLUMN_TYPES.TEXT, options),
+  pvcState: (options = {}) => createColumn('State', 'status', COLUMN_TYPES.STATUS, options),
+  pvState: (options = {}) => createColumn('State', 'status', COLUMN_TYPES.STATUS, options),
+  claimRef: (options = {}) => createColumn('Claim', 'claimRef', COLUMN_TYPES.TEXT, options),
+  reclaimPolicy: (options = {}) => createColumn('ReclaimPolicy', 'reclaimPolicy', COLUMN_TYPES.TEXT, options),
   
   // 配置相关列
   type: (options = {}) => createColumn('Type', 'type', COLUMN_TYPES.TEXT, options),
-  data: (options = {}) => createColumn('Data', 'data', COLUMN_TYPES.LABELS, options),
+  data: (options = {}) => createColumn('DataCount', 'dataCount', COLUMN_TYPES.NUMBER, options),
+  keys: (options = {}) => createColumn('Keys', 'keys', COLUMN_TYPES.ARRAY, { 
+    separator: ', ', 
+    maxItems: 999, 
+    render: (text, record) => {
+      if (!Array.isArray(text)) return text || '-';
+      if (text.length === 0) return '-';
+      
+      // 去重并过滤空值
+      const uniqueValues = [...new Set(text.filter(item => item && item.trim()))];
+      
+      return React.createElement('div', {
+        style: { 
+          whiteSpace: 'pre-wrap', 
+          wordBreak: 'break-word',
+          maxWidth: '300px',
+          lineHeight: '1.4'
+        }
+      }, uniqueValues.join(', '));
+    },
+    ...options 
+  }),
   labels: (options = {}) => createColumn('Labels', 'labels', COLUMN_TYPES.LABELS, options),
   
   // 事件相关列
   reason: (options = {}) => createColumn('Reason', 'reason', COLUMN_TYPES.TEXT, options),
-  message: (options = {}) => createColumn('Message', 'message', COLUMN_TYPES.TEXT, options),
-  lastTimestamp: (options = {}) => createColumn('Last Timestamp', 'lastTimestamp', COLUMN_TYPES.TIME, options),
+  message: (options = {}) => createColumn('Message', 'message', COLUMN_TYPES.TEXT, {
+    render: (text) => React.createElement('div', {
+      style: { 
+        whiteSpace: 'pre-wrap', 
+        wordBreak: 'break-word',
+        maxWidth: '300px',
+        lineHeight: '1.4'
+      }
+    }, text),
+    ...options
+  }),
+  lastTimestamp: (options = {}) => createColumn('LastSeen', 'lastSeen', COLUMN_TYPES.DETAILED_TIME, options),
+  duration: (options = {}) => createColumn('Duration', 'duration', COLUMN_TYPES.TEXT, options),
+  count: (options = {}) => createColumn('Count', 'count', COLUMN_TYPES.NUMBER, options),
+  eventType: (options = {}) => createColumn('Type', 'type', COLUMN_TYPES.STATUS, {
+    statusMap: {
+      'Normal': 'status-ready',
+      'Warning': 'status-failed'
+    },
+    ...options
+  }),
+  
+  // Job相关列
+  startTime: (options = {}) => createColumn('StartTime', 'startTime', COLUMN_TYPES.DETAILED_TIME, options),
+  completionTime: (options = {}) => createColumn('CompletionTime', 'completionTime', COLUMN_TYPES.DETAILED_TIME, options),
+  
+  // CronJob相关列
+  suspend: (options = {}) => createColumn('Suspend', 'suspend', COLUMN_TYPES.BOOLEAN, options),
+  
+  // Ingress相关列
+  class: (options = {}) => createColumn('Class', 'class', COLUMN_TYPES.TEXT, options),
+  path: (options = {}) => createColumn('Path', 'path', COLUMN_TYPES.ARRAY, { separator: ', ', maxItems: 999, ...options }),
+  targetService: (options = {}) => createColumn('TargetService', 'targetService', COLUMN_TYPES.UNIQUE_ARRAY, { separator: ', ', maxItems: 999, ...options }),
+  state: (options = {}) => createColumn('State', 'status', COLUMN_TYPES.STATUS, options),
   
   // 其他列
   version: (options = {}) => createColumn('Version', 'version', COLUMN_TYPES.TEXT, options),
-  internalIP: (options = {}) => createColumn('Internal IP', 'internalIP', COLUMN_TYPES.TEXT, options),
-  roles: (options = {}) => createColumn('Roles', 'roles', COLUMN_TYPES.ARRAY, { separator: ', ', maxItems: 2, ...options }),
-  ports: (options = {}) => createColumn('Ports', 'ports', COLUMN_TYPES.ARRAY, { separator: ', ', maxItems: 2, ...options }),
-  hosts: (options = {}) => createColumn('Hosts', 'hosts', COLUMN_TYPES.ARRAY, { separator: ', ', maxItems: 2, ...options }),
+  internalIP: (options = {}) => createColumn('IP', 'ip', COLUMN_TYPES.TEXT, options),
+  roles: (options = {}) => createColumn('Role', 'role', COLUMN_TYPES.UNIQUE_ARRAY, { separator: ', ', maxItems: 999, ...options }),
+  ports: (options = {}) => createColumn('Ports', 'ports', COLUMN_TYPES.ARRAY, { separator: ', ', maxItems: 999, ...options }),
+  hosts: (options = {}) => createColumn('Hosts', 'hosts', COLUMN_TYPES.ARRAY, { separator: ', ', maxItems: 999, ...options }),
+  pods: (options = {}) => createColumn('Pods', 'pods', COLUMN_TYPES.TEXT, {
+    render: (text, record) => `${record.podsUsed || 0}/${record.podsCapacity || 0}`,
+    ...options
+  }),
   
   // 布尔值列
   allowVolumeExpansion: (options = {}) => createColumn('Allow Volume Expansion', 'allowVolumeExpansion', COLUMN_TYPES.BOOLEAN, options),
+  isDefault: (options = {}) => createColumn('Default', 'isDefault', COLUMN_TYPES.BOOLEAN, options),
   
   // 自定义列
   custom: (title, dataIndex, options = {}) => createColumn(title, dataIndex, COLUMN_TYPES.TEXT, options)
