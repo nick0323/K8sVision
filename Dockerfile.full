@@ -1,4 +1,23 @@
-# 多阶段构建 - 后端依赖阶段
+# 完整应用 Dockerfile - 包含前端和后端
+# 用于构建包含前端静态文件的完整后端服务
+
+# 前端依赖阶段
+FROM node:20-alpine as frontend-deps
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci --only=production --no-audit --no-fund && \
+    npm cache clean --force
+
+# 前端构建阶段
+FROM node:20-alpine as frontend-builder
+WORKDIR /app/frontend
+COPY --from=frontend-deps /app/frontend/node_modules ./node_modules
+COPY frontend/ .
+RUN npm run build && \
+    npm prune --production && \
+    rm -rf /app/frontend/node_modules/.cache
+
+# 后端依赖阶段
 FROM golang:1.24-alpine as backend-deps
 WORKDIR /app
 RUN apk add --no-cache git ca-certificates tzdata
@@ -9,7 +28,7 @@ ENV GOPROXY=https://goproxy.cn,direct \
     GOARCH=amd64
 RUN go mod download && go mod verify
 
-# 多阶段构建 - 后端构建阶段
+# 后端构建阶段
 FROM golang:1.24-alpine as backend-builder
 WORKDIR /app
 RUN apk add --no-cache git ca-certificates tzdata
@@ -22,7 +41,7 @@ ENV CGO_ENABLED=0 \
     GOPROXY=https://goproxy.cn,direct
 RUN go build -ldflags='-w -s -extldflags "-static"' -trimpath -o k8svision ./main.go
 
-# 多阶段构建 - 最终运行阶段
+# 最终运行阶段
 FROM alpine:3.19 as runtime
 
 # 安装必要的运行时依赖
@@ -42,6 +61,7 @@ WORKDIR /app
 
 # 复制构建产物
 COPY --from=backend-builder /app/k8svision .
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY --from=backend-builder /app/config.yaml .
 
 # 创建必要的目录并设置权限
@@ -65,4 +85,4 @@ EXPOSE 8080
 
 # 使用dumb-init作为PID 1，确保信号正确处理
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["/app/k8svision"] 
+CMD ["/app/k8svision"]

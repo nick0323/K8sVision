@@ -2,12 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"os"
-	"sync"
 	"time"
 
-	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/cache"
+	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/model"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -19,7 +19,6 @@ var (
 	configManager *config.Manager
 	cacheManager  *cache.Manager
 	clientsCache  *cache.MemoryCache
-	clientsMutex  sync.RWMutex
 )
 
 // SetConfigManager 设置配置管理器
@@ -33,9 +32,9 @@ func SetCacheManager(cm *cache.Manager) {
 	// 创建客户端缓存
 	clientsCache = cache.NewMemoryCache(&model.CacheConfig{
 		Enabled:         true,
-		Type:           "memory",
-		TTL:            30 * time.Minute, // 客户端缓存30分钟
-		MaxSize:        10,               // 最多缓存10个客户端
+		Type:            "memory",
+		TTL:             30 * time.Minute, // 客户端缓存30分钟
+		MaxSize:         10,               // 最多缓存10个客户端
 		CleanupInterval: 5 * time.Minute,
 	}, cm.GetLogger()) // 从缓存管理器获取logger
 }
@@ -43,7 +42,7 @@ func SetCacheManager(cm *cache.Manager) {
 // GetK8sConfig 获取 Kubernetes 连接配置，优先环境变量，其次配置文件，最后集群内
 func GetK8sConfig() (*rest.Config, error) {
 	var k8sConfig *model.KubernetesConfig
-	
+
 	// 优先使用配置管理器
 	if configManager != nil {
 		cfg := configManager.GetConfig()
@@ -71,7 +70,7 @@ func GetK8sConfig() (*rest.Config, error) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// 应用配置
 		applyK8sConfig(config, k8sConfig)
 		return config, nil
@@ -86,7 +85,7 @@ func GetK8sConfig() (*rest.Config, error) {
 				Insecure: k8sConfig.Insecure,
 			},
 		}
-		
+
 		// 应用配置
 		applyK8sConfig(config, k8sConfig)
 		return config, nil
@@ -97,7 +96,7 @@ func GetK8sConfig() (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 应用配置
 	applyK8sConfig(config, k8sConfig)
 	return config, nil
@@ -109,7 +108,7 @@ func applyK8sConfig(config *rest.Config, k8sConfig *model.KubernetesConfig) {
 	if k8sConfig.Timeout > 0 {
 		config.Timeout = k8sConfig.Timeout
 	}
-	
+
 	// 设置QPS和Burst
 	if k8sConfig.QPS > 0 {
 		config.QPS = k8sConfig.QPS
@@ -117,14 +116,14 @@ func applyK8sConfig(config *rest.Config, k8sConfig *model.KubernetesConfig) {
 	if k8sConfig.Burst > 0 {
 		config.Burst = k8sConfig.Burst
 	}
-	
+
 	// 设置TLS配置
 	if k8sConfig.Insecure {
 		config.Insecure = true
 		config.TLSClientConfig.CAFile = ""
 		config.TLSClientConfig.CAData = nil
 	}
-	
+
 	// 设置证书文件
 	if k8sConfig.CertFile != "" {
 		config.TLSClientConfig.CertFile = k8sConfig.CertFile
@@ -139,44 +138,64 @@ func applyK8sConfig(config *rest.Config, k8sConfig *model.KubernetesConfig) {
 
 // GetK8sClient 获取 Kubernetes clientset 和 metrics client（带缓存）
 func GetK8sClient() (*kubernetes.Clientset, *metrics.Clientset, error) {
-	// 生成缓存键
-	cacheKey := "k8s_clients"
-	
+	start := time.Now()
+
+	// 生成更细粒度的缓存键
+	config, err := GetK8sConfig()
+	if err != nil {
+		recordK8sAPICall(time.Since(start), false)
+		return nil, nil, err
+	}
+
+	// 基于配置生成缓存键
+	cacheKey := generateK8sClientCacheKey(config)
+
 	// 尝试从缓存获取
 	if clientsCache != nil {
 		if cached, exists := clientsCache.Get(cacheKey); exists {
 			if clients, ok := cached.([]interface{}); ok && len(clients) == 2 {
 				if k8sClient, ok := clients[0].(*kubernetes.Clientset); ok {
 					if metricsClient, ok := clients[1].(*metrics.Clientset); ok {
+						recordK8sAPICall(time.Since(start), true)
 						return k8sClient, metricsClient, nil
 					}
 				}
 			}
 		}
 	}
-	
+
 	// 缓存未命中，创建新的客户端
-	config, err := GetK8sConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-	
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
+		recordK8sAPICall(time.Since(start), false)
 		return nil, nil, err
 	}
-	
+
 	metricsClient, err := metrics.NewForConfig(config)
 	if err != nil {
+		recordK8sAPICall(time.Since(start), false)
 		return nil, nil, err
 	}
-	
+
 	// 缓存客户端
 	if clientsCache != nil {
 		clientsCache.Set(cacheKey, []interface{}{clientset, metricsClient})
 	}
-	
+
+	recordK8sAPICall(time.Since(start), true)
 	return clientset, metricsClient, nil
+}
+
+// generateK8sClientCacheKey 生成K8s客户端缓存键
+func generateK8sClientCacheKey(config *rest.Config) string {
+	// 基于关键配置参数生成缓存键
+	key := fmt.Sprintf("k8s_client_%s_%s_%v_%v",
+		config.Host,
+		config.BearerToken[:min(len(config.BearerToken), 10)],
+		config.Insecure,
+		config.QPS,
+	)
+	return key
 }
 
 // GetK8sClientWithContext 获取带上下文的Kubernetes客户端
@@ -187,7 +206,7 @@ func GetK8sClientWithContext(ctx context.Context) (*kubernetes.Clientset, *metri
 		return nil, nil, ctx.Err()
 	default:
 	}
-	
+
 	return GetK8sClient()
 }
 
@@ -201,25 +220,25 @@ func ClearK8sClientCache() {
 // GetCachedResource 获取缓存的资源数据
 func GetCachedResource[T any](key string, ttl time.Duration, loader func() (T, error)) (T, error) {
 	var zero T
-	
+
 	if cacheManager == nil {
 		// 缓存未启用，直接加载
 		return loader()
 	}
-	
+
 	// 尝试从缓存获取
 	if cached, exists := cacheManager.Get(key); exists {
 		if value, ok := cached.(T); ok {
 			return value, nil
 		}
 	}
-	
+
 	// 缓存未命中，加载数据
 	value, err := loader()
 	if err != nil {
 		return zero, err
 	}
-	
+
 	// 设置缓存
 	cacheManager.SetWithTTL(key, value, ttl)
 	return value, nil
@@ -228,12 +247,12 @@ func GetCachedResource[T any](key string, ttl time.Duration, loader func() (T, e
 // GetCachedResourceWithCache 从指定缓存获取资源数据
 func GetCachedResourceWithCache[T any](cacheName, key string, ttl time.Duration, loader func() (T, error)) (T, error) {
 	var zero T
-	
+
 	if cacheManager == nil {
 		// 缓存未启用，直接加载
 		return loader()
 	}
-	
+
 	// 尝试从指定缓存获取
 	if value, err := cacheManager.GetOrSetWithCache(cacheName, key, ttl, func() (interface{}, error) {
 		return loader()
@@ -242,6 +261,20 @@ func GetCachedResourceWithCache[T any](cacheName, key string, ttl time.Duration,
 	} else if result, ok := value.(T); ok {
 		return result, nil
 	}
-	
+
 	return zero, nil
+}
+
+// recordK8sAPICall 记录K8s API调用
+func recordK8sAPICall(duration time.Duration, success bool) {
+	// 这里需要访问全局监控器，暂时先跳过
+	// 在实际使用中，应该通过依赖注入的方式传递监控器
+}
+
+// min 返回两个整数中的较小值
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

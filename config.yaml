@@ -20,7 +20,7 @@ kubernetes:
   apiServer: ""
 
 jwt:
-  secret: "k8svision-secret-key"
+  secret: "abcdefgABCDEFGhijklmnHIJKLMNopqresOPQRST"
   expiration: 24h
   issuer: "k8svision"
   audience: "k8svision-client"

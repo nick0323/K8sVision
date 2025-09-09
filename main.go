@@ -53,13 +53,13 @@ var (
 
 func initLogger(cfg *model.Config) (*zap.Logger, error) {
 	var zapConfig zap.Config
-	
+
 	if cfg.IsDevelopment() {
 		zapConfig = zap.NewDevelopmentConfig()
 	} else {
 		zapConfig = zap.NewProductionConfig()
 	}
-	
+
 	switch cfg.Log.Level {
 	case "debug":
 		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
@@ -72,52 +72,64 @@ func initLogger(cfg *model.Config) (*zap.Logger, error) {
 	default:
 		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
-	
+
 	if cfg.Log.Format == "console" {
 		zapConfig.Encoding = "console"
 	} else {
 		zapConfig.Encoding = "json"
 	}
-	
+
 	return zapConfig.Build()
 }
 
 func main() {
 	flag.Parse()
-	
+
 	tempLogger, _ := zap.NewProduction()
-	
+
 	configMgr = config.NewManager(tempLogger)
-	
+
 	if err := configMgr.Load(*configFile); err != nil {
 		tempLogger.Fatal("加载配置失败", zap.Error(err))
 	}
-	
+
 	cfg := configMgr.GetConfig()
-	
+
 	var err error
 	logger, err = initLogger(cfg)
 	if err != nil {
 		tempLogger.Fatal("初始化日志失败", zap.Error(err))
 	}
 	defer logger.Sync()
-	
+
+	// 重新创建配置管理器，使用新的logger
 	configMgr = config.NewManager(logger)
 	if err := configMgr.Load(*configFile); err != nil {
 		logger.Fatal("重新加载配置失败", zap.Error(err))
 	}
-	
+
 	cacheMgr = cache.NewManager(&cfg.Cache, logger)
 	defer cacheMgr.Close()
-	
+
 	monitorMgr = monitor.NewMonitor(logger)
 	defer monitorMgr.Close()
-	
+
 	service.SetConfigManager(configMgr)
 	service.SetCacheManager(cacheMgr)
-	
+
 	api.InitJWTSecret()
-	
+
+	// 设置配置管理器到各个模块
+	api.SetConfigManager(configMgr)
+	middleware.SetConfigManager(configMgr)
+
+	// 初始化认证管理器
+	api.InitAuthManager(logger)
+
+	// 初始化追踪和业务指标
+	monitor.InitTracing(logger)
+	monitor.InitBusinessMetrics(logger)
+
 	if err := configMgr.Watch(); err != nil {
 		logger.Warn("启动配置监听失败", zap.Error(err))
 	}
@@ -130,39 +142,32 @@ func main() {
 	}
 
 	r := gin.New()
-	
+
 	r.Use(middleware.ErrorHandler(logger))
 	r.Use(middleware.TraceMiddleware())
 	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(middleware.MetricsMiddleware(monitorMgr.GetMetrics()))
-	
+
 	if cfg.Auth.EnableRateLimit {
 		r.Use(middleware.ConcurrencyMiddleware(cfg.Auth.RateLimit))
 	}
-	
+
 	r.POST("/api/login", api.LoginHandler)
 
 	if os.Getenv("SWAGGER_ENABLE") == "true" {
 		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
 
-	r.GET("/healthz", func(c *gin.Context) {
-		c.String(200, "ok")
-	})
-	
-	r.GET("/metrics", func(c *gin.Context) {
-		stats := monitorMgr.GetMetrics().GetStats()
-		c.JSON(200, stats)
-	})
-	
+	// 健康检查和指标路由已移至API组中
+
 	r.GET("/cache/stats", func(c *gin.Context) {
 		stats := cacheMgr.GetAllStats()
 		c.JSON(200, stats)
 	})
-	
+
 	apiGroup := r.Group("/api")
 	apiGroup.Use(middleware.JWTAuthMiddleware(logger))
-	
+
 	if cfg.Cache.Enabled {
 		apiGroup.Use(middleware.CacheMiddleware(cacheMgr, cfg.Cache.TTL))
 	}
@@ -201,10 +206,25 @@ func main() {
 	api.RegisterConfigMap(apiGroup, logger, service.GetK8sClient, service.ListConfigMaps)
 	api.RegisterSecret(apiGroup, logger, service.GetK8sClient, service.ListSecrets)
 
+	// 注册密码管理路由
+	api.RegisterPasswordAdmin(apiGroup, logger)
+
+	// 注册指标路由
+	api.RegisterMetrics(apiGroup, logger)
+
+	// 注册健康检查路由
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":    "healthy",
+			"timestamp": time.Now().Unix(),
+			"version":   "1.0.0",
+		})
+	})
+
 	monitorMgr.StartPeriodicLogging(5 * time.Minute)
 
 	serverAddr := cfg.GetServerAddress()
-	logger.Info("服务器启动", 
+	logger.Info("服务器启动",
 		zap.String("address", serverAddr),
 		zap.Bool("cacheEnabled", cfg.Cache.Enabled),
 		zap.Bool("rateLimitEnabled", cfg.Auth.EnableRateLimit),

@@ -55,13 +55,13 @@ func TraceMiddleware() gin.HandlerFunc {
 		if traceId == "" {
 			traceId = generateTraceID()
 		}
-		
+
 		// 设置traceId到context中
 		c.Set("traceId", traceId)
-		
+
 		// 在响应头中返回traceId
 		c.Header("X-Trace-ID", traceId)
-		
+
 		c.Next()
 	}
 }
@@ -79,4 +79,4 @@ func randomString(length int) string {
 		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
 	}
 	return string(b)
-} 
+}

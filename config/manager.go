@@ -16,11 +16,11 @@ import (
 
 // Manager 配置管理器
 type Manager struct {
-	config *model.Config
-	viper  *viper.Viper
-	logger *zap.Logger
-	mutex  sync.RWMutex
-	watcher *fsnotify.Watcher
+	config     *model.Config
+	viper      *viper.Viper
+	logger     *zap.Logger
+	mutex      sync.RWMutex
+	watcher    *fsnotify.Watcher
 	configFile string
 }
 
@@ -36,7 +36,7 @@ func NewManager(logger *zap.Logger) *Manager {
 // Load 加载配置
 func (m *Manager) Load(configFile string) error {
 	m.configFile = configFile
-	
+
 	// 设置配置文件
 	if configFile != "" {
 		m.viper.SetConfigFile(configFile)
@@ -76,7 +76,7 @@ func (m *Manager) Load(configFile string) error {
 		return fmt.Errorf("配置验证失败: %w", err)
 	}
 
-	m.logger.Info("配置加载完成", 
+	m.logger.Info("配置加载完成",
 		zap.String("server", m.config.GetServerAddress()),
 		zap.String("logLevel", m.config.Log.Level),
 	)
@@ -269,4 +269,18 @@ func (m *Manager) WriteConfig() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	return m.viper.WriteConfig()
-} 
+}
+
+// GetJWTSecret 获取JWT密钥
+func (m *Manager) GetJWTSecret() []byte {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return []byte(m.config.JWT.Secret)
+}
+
+// GetAuthConfig 获取认证配置
+func (m *Manager) GetAuthConfig() *model.AuthConfig {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return &m.config.Auth
+}

@@ -1,6 +1,8 @@
 import React, { useState, lazy, Suspense, useCallback, useMemo, useEffect } from 'react';
 import './App.css';
 import LoadingSpinner from './components/LoadingSpinner';
+import ErrorBoundary from './components/ErrorBoundary';
+import { useOptimizedState } from './hooks/useOptimizedState';
 import { FaLayerGroup, FaDesktop, FaBell, FaCubes, FaTasks, FaChartPie, FaDatabase, FaShieldAlt, FaProjectDiagram, FaSync, FaNetworkWired, FaRegClock, FaChevronDown, FaChevronRight, FaChevronLeft, FaHdd, FaBoxOpen, FaBoxes, FaCog, FaKey } from 'react-icons/fa';
 import { LuSquareDashed } from 'react-icons/lu';
 import { MENU_LIST, API_MAP } from './constants';
@@ -56,7 +58,6 @@ const ICON_MAP = {
 
 // 页面组件映射 - 使用统一的页面组件
 const CURRENT_PAGE_COMPONENTS = {
-  overview: OverviewPage,
   ...PAGE_COMPONENTS
 };
 
@@ -118,19 +119,29 @@ const authUtils = {
 
 export default function App() {
   const [login, setLogin] = React.useState(authUtils.isLoggedIn());
-  const [tab, setTab] = useState('overview');
-  // 分组折叠状态
-  const [openGroups, setOpenGroups] = useState(() => {
-    // 默认全部展开
+  const [tab, setTab] = useOptimizedState('overview', {
+    cache: true,
+    cacheKey: 'current_tab',
+  });
+  
+  // 分组折叠状态 - 使用优化的状态管理
+  const [openGroups, setOpenGroups] = useOptimizedState((() => {
     const state = {};
     MENU_LIST.forEach(g => { state[g.group] = true; });
     return state;
+  })(), {
+    cache: true,
+    cacheKey: 'open_groups',
   });
-  // 侧边栏是否折叠
-  const [collapsed, setCollapsed] = useState(() => {
+  
+  // 侧边栏是否折叠 - 使用优化的状态管理
+  const [collapsed, setCollapsed] = useOptimizedState((() => {
     try {
       return JSON.parse(localStorage.getItem('sider_collapsed') || 'false');
     } catch (e) { return false; }
+  })(), {
+    cache: true,
+    cacheKey: 'sider_collapsed',
   });
   
   // 使用useCallback优化函数，避免不必要的重渲染
@@ -298,16 +309,28 @@ export default function App() {
         </div>
       </div>
       <div className="main-content">
-        <Suspense fallback={
-          <LoadingSpinner 
-            type="spinner" 
-            text="Loading..." 
-            size="lg"
-            className="app-loading"
-          />
-                              }>
-                        <CurrentPage collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
-                      </Suspense>
+        <ErrorBoundary
+          fallback={({ error, onRetry }) => (
+            <div className="error-fallback">
+              <h3>页面加载失败</h3>
+              <p>{error?.message || '未知错误'}</p>
+              <button onClick={onRetry} className="retry-btn">
+                重试
+              </button>
+            </div>
+          )}
+        >
+          <Suspense fallback={
+            <LoadingSpinner 
+              type="spinner" 
+              text="Loading..." 
+              size="lg"
+              className="app-loading"
+            />
+          }>
+            <CurrentPage collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
+          </Suspense>
+        </ErrorBoundary>
       </div>
       {collapsed && tip.visible && (
         <div style={{

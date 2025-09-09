@@ -1,14 +1,88 @@
-# Go backend .dockerignore
+# Git相关
 .git
-frontend/
-#docs/
+.gitignore
+.gitattributes
+
+# 文档
 *.md
-*.log
-*.test
-*.out
-node_modules/
+docs/
+README.md
+DEPLOYMENT.md
+OPTIMIZATION_PLAN.md
+OPTIMIZATION_SUMMARY.md
+QUICKSTART.md
+
+# 开发工具配置
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+
+# 操作系统相关
 .DS_Store
-.env
-coverage/ 
+Thumbs.db
+
+# Node.js相关（前端）
+frontend/node_modules/
+frontend/dist/
+frontend/.npm/
+frontend/.vite/
+frontend/coverage/
+
+# Go相关
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# 测试文件
+*_test.go
+test/
+tests/
+
+# 构建产物
+build/
+dist/
+bin/
+
+# 配置文件（保留config.yaml.example）
+config.yaml
+*.env
+.env.*
+
+# Docker相关
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Kubernetes相关
+k8s/
+*.yaml
+*.yml
+
+# 脚本文件
+scripts/
+*.sh
+*.bat
+
+# 缓存目录
+.cache/
+cache/
+
+# 监控和指标
+monitor/
+*.prom

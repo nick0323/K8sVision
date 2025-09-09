@@ -3,17 +3,18 @@ package api
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
-	"reflect"
 
-	"github.com/nick0323/K8sVision/model"
-	"github.com/nick0323/K8sVision/api/middleware"
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"github.com/nick0323/K8sVision/api/middleware"
+	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
-	"os"
 )
 
 var jwtSecret []byte
@@ -96,8 +97,12 @@ func GenericListHandler[T any](
 	}
 }
 
-// filterItemsBySearch 根据搜索关键词过滤项目
-// 这是一个通用的搜索过滤函数，支持常见的字段搜索
+// SearchableItem 可搜索项目接口
+type SearchableItem interface {
+	GetSearchableFields() map[string]string
+}
+
+// filterItemsBySearch 根据搜索关键词过滤项目（优化版本）
 func filterItemsBySearch[T any](items []T, search string) []T {
 	if search == "" {
 		return items
@@ -107,8 +112,7 @@ func filterItemsBySearch[T any](items []T, search string) []T {
 	var filtered []T
 
 	for _, item := range items {
-		// 使用反射获取结构体字段值进行搜索
-		if matchesSearch(item, searchLower) {
+		if matchesSearchOptimized(item, searchLower) {
 			filtered = append(filtered, item)
 		}
 	}
@@ -116,8 +120,25 @@ func filterItemsBySearch[T any](items []T, search string) []T {
 	return filtered
 }
 
-// matchesSearch 检查单个项目是否匹配搜索关键词
-func matchesSearch[T any](item T, searchLower string) bool {
+// matchesSearchOptimized 优化的搜索匹配函数
+func matchesSearchOptimized[T any](item T, searchLower string) bool {
+	// 首先尝试使用接口方法
+	if searchable, ok := any(item).(SearchableItem); ok {
+		fields := searchable.GetSearchableFields()
+		for _, value := range fields {
+			if strings.Contains(strings.ToLower(value), searchLower) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// 回退到反射方法（保持兼容性）
+	return matchesSearchReflection(item, searchLower)
+}
+
+// matchesSearchReflection 使用反射的搜索匹配函数（保持向后兼容）
+func matchesSearchReflection[T any](item T, searchLower string) bool {
 	val := reflect.ValueOf(item)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -129,7 +150,7 @@ func matchesSearch[T any](item T, searchLower string) bool {
 
 	// 定义要搜索的字段名（这些字段通常是字符串类型且对用户有意义）
 	searchableFields := []string{"Name", "Namespace", "Status", "PodIP", "NodeName", "Image"}
-	
+
 	for _, fieldName := range searchableFields {
 		field := val.FieldByName(fieldName)
 		if field.IsValid() && field.CanInterface() {

@@ -7,19 +7,32 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
 )
 
-// InitJWTSecret 初始化 JWT 密钥
+var configManager *config.Manager
+
+// SetConfigManager 设置配置管理器
+func SetConfigManager(cm *config.Manager) {
+	configManager = cm
+}
+
+// InitJWTSecret 初始化 JWT 密钥（保持向后兼容）
 func InitJWTSecret(secret string) {
-	// 这个函数现在只是占位符，实际的密钥管理在api包中
+	// 这个函数现在只是占位符，实际的密钥管理通过配置管理器
 	_ = secret
 }
 
 // getJWTSecret 获取JWT密钥
 func getJWTSecret() []byte {
-	// 从环境变量获取密钥
+	// 优先从配置管理器获取密钥
+	if configManager != nil {
+		return configManager.GetJWTSecret()
+	}
+
+	// 兼容旧版本，从环境变量获取密钥
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		secret = "k8svision-secret-key"
@@ -31,14 +44,14 @@ func getJWTSecret() []byte {
 func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		traceId := getTraceID(c)
-		
+
 		logger.Debug("JWT认证开始",
 			zap.String("traceId", traceId),
 			zap.String("clientIP", c.ClientIP()),
 			zap.String("path", c.Request.URL.Path),
 			zap.String("method", c.Request.Method),
 		)
-		
+
 		// 获取Authorization头
 		tokenStr := c.GetHeader("Authorization")
 		if tokenStr == "" {
@@ -184,7 +197,7 @@ func RequirePermission(permission string) gin.HandlerFunc {
 
 		c.Next()
 	}
-} 
+}
 
 // min 返回两个整数中的较小值
 func min(a, b int) int {
@@ -192,4 +205,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-} 
+}

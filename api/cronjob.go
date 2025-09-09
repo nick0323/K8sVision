@@ -128,7 +128,7 @@ func getCronJobDetail(
 		}
 
 		status := "Unknown"
-		if cronjob.Status.Active != nil && len(cronjob.Status.Active) > 0 {
+		if len(cronjob.Status.Active) > 0 {
 			status = "Running"
 		} else if cronjob.Status.LastSuccessfulTime != nil {
 			status = "Succeeded"

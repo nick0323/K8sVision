@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -16,7 +17,7 @@ import (
 func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
 		traceId := getTraceID(c)
-		
+
 		logger.Error("panic recovered",
 			zap.String("traceId", traceId),
 			zap.String("method", c.Request.Method),
@@ -24,6 +25,34 @@ func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
 			zap.Any("error", recovered),
 			zap.String("stack", string(debug.Stack())),
 		)
+
+		ResponseError(c, logger, &model.APIError{
+			Code:    model.CodeInternalServerError,
+			Message: "服务器内部错误",
+			Details: "系统发生未知错误",
+		}, http.StatusInternalServerError)
+	})
+}
+
+// ErrorHandlerWithMetrics 带指标记录的错误处理中间件
+func ErrorHandlerWithMetrics(logger *zap.Logger, metricsRecorder interface{}) gin.HandlerFunc {
+	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+		traceId := getTraceID(c)
+
+		logger.Error("panic recovered",
+			zap.String("traceId", traceId),
+			zap.String("method", c.Request.Method),
+			zap.String("path", c.Request.URL.Path),
+			zap.Any("error", recovered),
+			zap.String("stack", string(debug.Stack())),
+		)
+
+		// 记录错误指标
+		if recorder, ok := metricsRecorder.(interface {
+			RecordError(err string)
+		}); ok {
+			recorder.RecordError(fmt.Sprintf("panic: %v", recovered))
+		}
 
 		ResponseError(c, logger, &model.APIError{
 			Code:    model.CodeInternalServerError,
@@ -43,9 +72,9 @@ type APIError struct {
 // ResponseError 统一错误响应处理
 func ResponseError(c *gin.Context, logger *zap.Logger, err error, httpCode int) {
 	traceId := getTraceID(c)
-	
+
 	var apiError *model.APIError
-	
+
 	switch e := err.(type) {
 	case *model.APIError:
 		apiError = e
@@ -93,7 +122,7 @@ func ResponseError(c *gin.Context, logger *zap.Logger, err error, httpCode int) 
 // ResponseSuccess 统一成功响应处理
 func ResponseSuccess(c *gin.Context, data interface{}, message string, page *model.PageMeta) {
 	traceId := getTraceID(c)
-	
+
 	c.JSON(http.StatusOK, model.APIResponse{
 		Code:      model.CodeSuccess,
 		Message:   message,
@@ -189,4 +218,4 @@ func InvalidParameterError(param, value string) *model.APIError {
 			"value":     value,
 		},
 	}
-} 
+}

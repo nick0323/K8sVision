@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -16,27 +17,27 @@ type Config struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port         string        `mapstructure:"port" json:"port"`
-	Host         string        `mapstructure:"host" json:"host"`
-	ReadTimeout  time.Duration `mapstructure:"readTimeout" json:"readTimeout"`
-	WriteTimeout time.Duration `mapstructure:"writeTimeout" json:"writeTimeout"`
-	IdleTimeout  time.Duration `mapstructure:"idleTimeout" json:"idleTimeout"`
-	MaxHeaderBytes int         `mapstructure:"maxHeaderBytes" json:"maxHeaderBytes"`
+	Port           string        `mapstructure:"port" json:"port"`
+	Host           string        `mapstructure:"host" json:"host"`
+	ReadTimeout    time.Duration `mapstructure:"readTimeout" json:"readTimeout"`
+	WriteTimeout   time.Duration `mapstructure:"writeTimeout" json:"writeTimeout"`
+	IdleTimeout    time.Duration `mapstructure:"idleTimeout" json:"idleTimeout"`
+	MaxHeaderBytes int           `mapstructure:"maxHeaderBytes" json:"maxHeaderBytes"`
 }
 
 // KubernetesConfig Kubernetes配置
 type KubernetesConfig struct {
-	Kubeconfig     string        `mapstructure:"kubeconfig" json:"kubeconfig"`
-	Context        string        `mapstructure:"context" json:"context"`
-	Timeout        time.Duration `mapstructure:"timeout" json:"timeout"`
-	QPS            float32       `mapstructure:"qps" json:"qps"`
-	Burst          int           `mapstructure:"burst" json:"burst"`
-	Insecure       bool          `mapstructure:"insecure" json:"insecure"`
-	CAFile         string        `mapstructure:"caFile" json:"caFile"`
-	CertFile       string        `mapstructure:"certFile" json:"certFile"`
-	KeyFile        string        `mapstructure:"keyFile" json:"keyFile"`
-	Token          string        `mapstructure:"token" json:"token"`
-	APIServer      string        `mapstructure:"apiServer" json:"apiServer"`
+	Kubeconfig string        `mapstructure:"kubeconfig" json:"kubeconfig"`
+	Context    string        `mapstructure:"context" json:"context"`
+	Timeout    time.Duration `mapstructure:"timeout" json:"timeout"`
+	QPS        float32       `mapstructure:"qps" json:"qps"`
+	Burst      int           `mapstructure:"burst" json:"burst"`
+	Insecure   bool          `mapstructure:"insecure" json:"insecure"`
+	CAFile     string        `mapstructure:"caFile" json:"caFile"`
+	CertFile   string        `mapstructure:"certFile" json:"certFile"`
+	KeyFile    string        `mapstructure:"keyFile" json:"keyFile"`
+	Token      string        `mapstructure:"token" json:"token"`
+	APIServer  string        `mapstructure:"apiServer" json:"apiServer"`
 }
 
 // JWTConfig JWT配置
@@ -71,10 +72,10 @@ type AuthConfig struct {
 
 // CacheConfig 缓存配置
 type CacheConfig struct {
-	Enabled     bool          `mapstructure:"enabled" json:"enabled"`
-	Type        string        `mapstructure:"type" json:"type"`
-	TTL         time.Duration `mapstructure:"ttl" json:"ttl"`
-	MaxSize     int           `mapstructure:"maxSize" json:"maxSize"`
+	Enabled         bool          `mapstructure:"enabled" json:"enabled"`
+	Type            string        `mapstructure:"type" json:"type"`
+	TTL             time.Duration `mapstructure:"ttl" json:"ttl"`
+	MaxSize         int           `mapstructure:"maxSize" json:"maxSize"`
 	CleanupInterval time.Duration `mapstructure:"cleanupInterval" json:"cleanupInterval"`
 }
 
@@ -82,11 +83,11 @@ type CacheConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port:         "8080",
-			Host:         "0.0.0.0",
-			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 30 * time.Second,
-			IdleTimeout:  60 * time.Second,
+			Port:           "8080",
+			Host:           "0.0.0.0",
+			ReadTimeout:    30 * time.Second,
+			WriteTimeout:   30 * time.Second,
+			IdleTimeout:    60 * time.Second,
 			MaxHeaderBytes: 1 << 20, // 1MB
 		},
 		Kubernetes: KubernetesConfig{
@@ -123,9 +124,9 @@ func DefaultConfig() *Config {
 		},
 		Cache: CacheConfig{
 			Enabled:         true,
-			Type:           "memory",
-			TTL:            5 * time.Minute,
-			MaxSize:        1000,
+			Type:            "memory",
+			TTL:             5 * time.Minute,
+			MaxSize:         1000,
 			CleanupInterval: 10 * time.Minute,
 		},
 	}
@@ -133,7 +134,81 @@ func DefaultConfig() *Config {
 
 // Validate 验证配置
 func (c *Config) Validate() error {
-	// 这里可以添加配置验证逻辑
+	// 验证服务器配置
+	if c.Server.Port == "" {
+		return fmt.Errorf("服务器端口不能为空")
+	}
+	if c.Server.Host == "" {
+		return fmt.Errorf("服务器主机不能为空")
+	}
+	if c.Server.ReadTimeout <= 0 {
+		return fmt.Errorf("读取超时时间必须大于0")
+	}
+	if c.Server.WriteTimeout <= 0 {
+		return fmt.Errorf("写入超时时间必须大于0")
+	}
+
+	// 验证JWT配置
+	if c.JWT.Secret == "" {
+		return fmt.Errorf("JWT密钥不能为空")
+	}
+	if len(c.JWT.Secret) < 32 {
+		return fmt.Errorf("JWT密钥长度至少32位")
+	}
+	if c.JWT.Expiration <= 0 {
+		return fmt.Errorf("JWT过期时间必须大于0")
+	}
+
+	// 验证认证配置
+	if c.Auth.Username == "" {
+		return fmt.Errorf("认证用户名不能为空")
+	}
+	if c.Auth.Password == "" {
+		return fmt.Errorf("认证密码不能为空")
+	}
+	if c.Auth.MaxLoginFail <= 0 {
+		return fmt.Errorf("最大登录失败次数必须大于0")
+	}
+	if c.Auth.LockDuration <= 0 {
+		return fmt.Errorf("锁定时间必须大于0")
+	}
+
+	// 验证日志配置
+	validLogLevels := map[string]bool{
+		"debug": true, "info": true, "warn": true, "error": true,
+	}
+	if !validLogLevels[c.Log.Level] {
+		return fmt.Errorf("无效的日志级别: %s", c.Log.Level)
+	}
+
+	validLogFormats := map[string]bool{
+		"json": true, "console": true,
+	}
+	if !validLogFormats[c.Log.Format] {
+		return fmt.Errorf("无效的日志格式: %s", c.Log.Format)
+	}
+
+	// 验证缓存配置
+	if c.Cache.Enabled {
+		if c.Cache.TTL <= 0 {
+			return fmt.Errorf("缓存TTL必须大于0")
+		}
+		if c.Cache.MaxSize <= 0 {
+			return fmt.Errorf("缓存最大大小必须大于0")
+		}
+	}
+
+	// 验证Kubernetes配置
+	if c.Kubernetes.QPS <= 0 {
+		return fmt.Errorf("kubernetes QPS必须大于0")
+	}
+	if c.Kubernetes.Burst <= 0 {
+		return fmt.Errorf("kubernetes Burst必须大于0")
+	}
+	if c.Kubernetes.Timeout <= 0 {
+		return fmt.Errorf("Kubernetes超时时间必须大于0")
+	}
+
 	return nil
 }
 
@@ -150,4 +225,4 @@ func (c *Config) IsDevelopment() bool {
 // IsProduction 判断是否为生产环境
 func (c *Config) IsProduction() bool {
 	return c.Log.Level == "info" || c.Log.Level == "warn" || c.Log.Level == "error"
-} 
+}

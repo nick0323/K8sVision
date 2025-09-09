@@ -31,7 +31,7 @@ type MemoryCache struct {
 // NewMemoryCache 创建新的内存缓存
 func NewMemoryCache(config *model.CacheConfig, logger *zap.Logger) *MemoryCache {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	cache := &MemoryCache{
 		data:            make(map[string]CacheItem),
 		maxSize:         config.MaxSize,
@@ -41,12 +41,12 @@ func NewMemoryCache(config *model.CacheConfig, logger *zap.Logger) *MemoryCache 
 		ctx:             ctx,
 		cancel:          cancel,
 	}
-	
+
 	// 启动清理协程
 	if config.Enabled {
 		go cache.cleanupWorker()
 	}
-	
+
 	return cache
 }
 
@@ -59,19 +59,19 @@ func (c *MemoryCache) Set(key string, value interface{}) {
 func (c *MemoryCache) SetWithTTL(key string, value interface{}, ttl time.Duration) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	// 检查容量限制
 	if len(c.data) >= c.maxSize {
 		c.evictOldest()
 	}
-	
+
 	now := time.Now()
 	c.data[key] = CacheItem{
 		Value:      value,
 		ExpireTime: now.Add(ttl),
 		CreatedAt:  now,
 	}
-	
+
 	// 安全检查logger
 	if c.logger != nil {
 		c.logger.Debug("缓存设置", zap.String("key", key), zap.Duration("ttl", ttl))
@@ -82,19 +82,19 @@ func (c *MemoryCache) SetWithTTL(key string, value interface{}, ttl time.Duratio
 func (c *MemoryCache) Get(key string) (interface{}, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	item, exists := c.data[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// 检查是否过期
 	if time.Now().After(item.ExpireTime) {
 		// 异步删除过期项
 		go c.delete(key)
 		return nil, false
 	}
-	
+
 	// 安全检查logger
 	if c.logger != nil {
 		c.logger.Debug("缓存命中", zap.String("key", key))
@@ -106,9 +106,9 @@ func (c *MemoryCache) Get(key string) (interface{}, bool) {
 func (c *MemoryCache) Delete(key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	delete(c.data, key)
-	
+
 	// 安全检查logger
 	if c.logger != nil {
 		c.logger.Debug("缓存删除", zap.String("key", key))
@@ -119,7 +119,7 @@ func (c *MemoryCache) Delete(key string) {
 func (c *MemoryCache) delete(key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	delete(c.data, key)
 }
 
@@ -127,9 +127,9 @@ func (c *MemoryCache) delete(key string) {
 func (c *MemoryCache) Clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	c.data = make(map[string]CacheItem)
-	
+
 	// 安全检查logger
 	if c.logger != nil {
 		c.logger.Info("缓存已清空")
@@ -140,7 +140,7 @@ func (c *MemoryCache) Clear() {
 func (c *MemoryCache) Size() int {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	return len(c.data)
 }
 
@@ -148,7 +148,7 @@ func (c *MemoryCache) Size() int {
 func (c *MemoryCache) Keys() []string {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	keys := make([]string, 0, len(c.data))
 	for key := range c.data {
 		keys = append(keys, key)
@@ -161,7 +161,7 @@ func (c *MemoryCache) evictOldest() {
 	var oldestKey string
 	var oldestTime time.Time
 	first := true
-	
+
 	for key, item := range c.data {
 		if first || item.CreatedAt.Before(oldestTime) {
 			oldestKey = key
@@ -169,10 +169,10 @@ func (c *MemoryCache) evictOldest() {
 			first = false
 		}
 	}
-	
+
 	if oldestKey != "" {
 		delete(c.data, oldestKey)
-		
+
 		// 安全检查logger
 		if c.logger != nil {
 			c.logger.Debug("缓存淘汰", zap.String("key", oldestKey))
@@ -184,7 +184,7 @@ func (c *MemoryCache) evictOldest() {
 func (c *MemoryCache) cleanupWorker() {
 	ticker := time.NewTicker(c.cleanupInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -199,17 +199,17 @@ func (c *MemoryCache) cleanupWorker() {
 func (c *MemoryCache) cleanup() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	now := time.Now()
 	expiredCount := 0
-	
+
 	for key, item := range c.data {
 		if now.After(item.ExpireTime) {
 			delete(c.data, key)
 			expiredCount++
 		}
 	}
-	
+
 	if expiredCount > 0 {
 		// 安全检查logger
 		if c.logger != nil {
@@ -222,7 +222,7 @@ func (c *MemoryCache) cleanup() {
 func (c *MemoryCache) Close() {
 	c.cancel()
 	c.Clear()
-	
+
 	// 安全检查logger
 	if c.logger != nil {
 		c.logger.Info("缓存已关闭")
@@ -233,11 +233,13 @@ func (c *MemoryCache) Close() {
 func (c *MemoryCache) GetStats() map[string]interface{} {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	now := time.Now()
 	expiredCount := 0
 	totalSize := 0
-	
+	hitRate := 0.0
+
+	// 计算过期项数量
 	for _, item := range c.data {
 		if now.After(item.ExpireTime) {
 			expiredCount++
@@ -245,12 +247,21 @@ func (c *MemoryCache) GetStats() map[string]interface{} {
 		// 简单估算内存使用
 		totalSize += 100 // 假设每个项平均100字节
 	}
-	
+
+	// 计算命中率（这里需要添加命中/未命中统计）
+	// 在实际使用中，应该维护这些统计信息
+	totalRequests := 0 // 需要从其他地方获取
+	if totalRequests > 0 {
+		hitRate = float64(len(c.data)) / float64(totalRequests) * 100
+	}
+
 	return map[string]interface{}{
 		"size":         len(c.data),
 		"maxSize":      c.maxSize,
 		"expiredCount": expiredCount,
 		"totalSize":    totalSize,
 		"ttl":          c.ttl.String(),
+		"hitRate":      hitRate,
+		"utilization":  float64(len(c.data)) / float64(c.maxSize) * 100,
 	}
-} 
+}

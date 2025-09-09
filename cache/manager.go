@@ -35,14 +35,14 @@ type Cache interface {
 // NewManager 创建缓存管理器
 func NewManager(config *model.CacheConfig, logger *zap.Logger) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	manager := &Manager{
 		caches: make(map[string]Cache),
 		logger: logger,
 		ctx:    ctx,
 		cancel: cancel,
 	}
-	
+
 	// 初始化默认缓存
 	if config.Enabled {
 		switch config.Type {
@@ -53,7 +53,7 @@ func NewManager(config *model.CacheConfig, logger *zap.Logger) *Manager {
 			manager.caches["default"] = NewMemoryCache(config, logger)
 		}
 	}
-	
+
 	return manager
 }
 
@@ -61,7 +61,7 @@ func NewManager(config *model.CacheConfig, logger *zap.Logger) *Manager {
 func (m *Manager) GetCache(name string) (Cache, bool) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	cache, exists := m.caches[name]
 	return cache, exists
 }
@@ -75,11 +75,11 @@ func (m *Manager) GetDefaultCache() (Cache, bool) {
 func (m *Manager) CreateCache(name string, config *model.CacheConfig) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if _, exists := m.caches[name]; exists {
 		return fmt.Errorf("缓存已存在: %s", name)
 	}
-	
+
 	var cache Cache
 	switch config.Type {
 	case "memory":
@@ -87,7 +87,7 @@ func (m *Manager) CreateCache(name string, config *model.CacheConfig) error {
 	default:
 		return fmt.Errorf("不支持的缓存类型: %s", config.Type)
 	}
-	
+
 	m.caches[name] = cache
 	m.logger.Info("缓存创建成功", zap.String("name", name), zap.String("type", config.Type))
 	return nil
@@ -97,12 +97,12 @@ func (m *Manager) CreateCache(name string, config *model.CacheConfig) error {
 func (m *Manager) DeleteCache(name string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	cache, exists := m.caches[name]
 	if !exists {
 		return fmt.Errorf("缓存不存在: %s", name)
 	}
-	
+
 	cache.Close()
 	delete(m.caches, name)
 	m.logger.Info("缓存删除成功", zap.String("name", name))
@@ -151,13 +151,13 @@ func (m *Manager) GetOrSet(key string, ttl time.Duration, loader func() (interfa
 	if value, exists := m.Get(key); exists {
 		return value, nil
 	}
-	
+
 	// 缓存未命中，加载数据
 	value, err := loader()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 设置缓存
 	m.SetWithTTL(key, value, ttl)
 	return value, nil
@@ -169,18 +169,18 @@ func (m *Manager) GetOrSetWithCache(cacheName, key string, ttl time.Duration, lo
 	if !exists {
 		return nil, fmt.Errorf("缓存不存在: %s", cacheName)
 	}
-	
+
 	// 尝试从缓存获取
 	if value, exists := cache.Get(key); exists {
 		return value, nil
 	}
-	
+
 	// 缓存未命中，加载数据
 	value, err := loader()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 设置缓存
 	cache.SetWithTTL(key, value, ttl)
 	return value, nil
@@ -190,12 +190,12 @@ func (m *Manager) GetOrSetWithCache(cacheName, key string, ttl time.Duration, lo
 func (m *Manager) GetAllStats() map[string]interface{} {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	stats := make(map[string]interface{})
 	for name, cache := range m.caches {
 		stats[name] = cache.GetStats()
 	}
-	
+
 	return stats
 }
 
@@ -203,12 +203,12 @@ func (m *Manager) GetAllStats() map[string]interface{} {
 func (m *Manager) Close() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	for name, cache := range m.caches {
 		cache.Close()
 		m.logger.Info("缓存已关闭", zap.String("name", name))
 	}
-	
+
 	m.caches = make(map[string]Cache)
 	m.cancel()
 }
@@ -217,7 +217,7 @@ func (m *Manager) Close() {
 func (m *Manager) ListCaches() []string {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	names := make([]string, 0, len(m.caches))
 	for name := range m.caches {
 		names = append(names, name)
@@ -234,4 +234,57 @@ func (m *Manager) IsEnabled() bool {
 // GetLogger 获取logger
 func (m *Manager) GetLogger() *zap.Logger {
 	return m.logger
-} 
+}
+
+// WarmupCache 缓存预热
+func (m *Manager) WarmupCache(loader func() (map[string]interface{}, error)) error {
+	if !m.IsEnabled() {
+		return nil
+	}
+
+	cache, exists := m.GetDefaultCache()
+	if !exists {
+		return fmt.Errorf("默认缓存不存在")
+	}
+
+	// 加载数据
+	data, err := loader()
+	if err != nil {
+		return fmt.Errorf("加载预热数据失败: %w", err)
+	}
+
+	// 批量设置缓存
+	for key, value := range data {
+		cache.Set(key, value)
+	}
+
+	m.logger.Info("缓存预热完成", zap.Int("count", len(data)))
+	return nil
+}
+
+// GetCacheStats 获取缓存统计信息
+func (m *Manager) GetCacheStats() map[string]interface{} {
+	stats := make(map[string]interface{})
+
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	for name, cache := range m.caches {
+		stats[name] = cache.GetStats()
+	}
+
+	return stats
+}
+
+// ClearExpired 清理过期项
+func (m *Manager) ClearExpired() {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	for name, cache := range m.caches {
+		// 这里需要实现清理过期项的逻辑
+		// 目前MemoryCache已经有自动清理机制
+		_ = name
+		_ = cache
+	}
+}

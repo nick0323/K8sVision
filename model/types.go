@@ -436,3 +436,62 @@ type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+// 为各种状态结构体实现SearchableItem接口
+
+// GetSearchableFields 实现SearchableItem接口
+func (p PodStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      p.Name,
+		"Namespace": p.Namespace,
+		"Status":    p.Status,
+		"PodIP":     p.PodIP,
+		"NodeName":  p.NodeName,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (d DeploymentStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      d.Name,
+		"Namespace": d.Namespace,
+		"Status":    d.Status,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (s StatefulSetStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      s.Name,
+		"Namespace": s.Namespace,
+		"Status":    s.Status,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (d DaemonSetStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      d.Name,
+		"Namespace": d.Namespace,
+		"Status":    d.Status,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (s ServiceStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      s.Name,
+		"Namespace": s.Namespace,
+		"Type":      s.Type,
+		"ClusterIP": s.ClusterIP,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (n NodeStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":   n.Name,
+		"IP":     n.IP,
+		"Status": n.Status,
+	}
+}

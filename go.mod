@@ -11,6 +11,7 @@ require (
 	github.com/swaggo/gin-swagger v1.3.0
 	github.com/swaggo/swag v1.16.4
 	go.uber.org/zap v1.27.0
+	golang.org/x/crypto v0.36.0
 	k8s.io/api v0.33.2
 	k8s.io/apimachinery v0.33.2
 	k8s.io/client-go v0.33.2

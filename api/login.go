@@ -4,24 +4,39 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/nick0323/K8sVision/model"
 	"github.com/nick0323/K8sVision/api/middleware"
+	"github.com/nick0323/K8sVision/config"
+	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
 )
 
-var loginFailMap = make(map[string]struct {
-	Count    int
-	LastFail time.Time
-})
-
 var (
-	maxLoginFail = 5
-	lockDuration = 10 * time.Minute
+	maxLoginFail  = 5
+	lockDuration  = 10 * time.Minute
+	configManager *config.Manager
+	authManager   *AuthManager
 )
+
+// SetConfigManager 设置配置管理器
+func SetConfigManager(cm *config.Manager) {
+	configManager = cm
+	// 从配置管理器获取认证配置
+	if cm != nil {
+		authConfig := cm.GetAuthConfig()
+		maxLoginFail = authConfig.MaxLoginFail
+		lockDuration = authConfig.LockDuration
+	}
+}
+
+// InitAuthManager 初始化认证管理器
+func InitAuthManager(logger *zap.Logger) {
+	authManager = NewAuthManager(logger)
+}
 
 func init() {
 	if v := os.Getenv("LOGIN_MAX_FAIL"); v != "" {
@@ -73,39 +88,67 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	username := os.Getenv("LOGIN_USERNAME")
-	password := os.Getenv("LOGIN_PASSWORD")
-	key := req.Username + "|" + c.ClientIP()
-	failInfo := loginFailMap[key]
-	
-	// 超过锁定时间自动重置失败次数
-	if time.Since(failInfo.LastFail) >= lockDuration {
-		failInfo.Count = 0
+	// 优先从配置管理器获取认证信息
+	var username, password string
+	if configManager != nil {
+		authConfig := configManager.GetAuthConfig()
+		username = authConfig.Username
+		password = authConfig.Password
+	} else {
+		// 兼容旧版本，从环境变量获取
+		username = os.Getenv("LOGIN_USERNAME")
+		password = os.Getenv("LOGIN_PASSWORD")
 	}
-	
-	if failInfo.Count >= maxLoginFail {
+	key := req.Username + "|" + c.ClientIP()
+
+	// 检查是否被锁定
+	if authManager != nil && authManager.IsLocked(key, maxLoginFail, lockDuration) {
+		remainingAttempts := authManager.GetRemainingAttempts(key, maxLoginFail)
 		middleware.ResponseError(c, logger, &model.APIError{
 			Code:    model.CodeRequestTimeout,
-			Message: "登录失败次数过多，请10分钟后再试",
+			Message: "登录失败次数过多，请稍后再试",
 			Details: map[string]interface{}{
-				"remainingTime": lockDuration - time.Since(failInfo.LastFail),
-				"maxFailCount":  maxLoginFail,
+				"remainingAttempts": remainingAttempts,
+				"maxFailCount":      maxLoginFail,
+				"lockDuration":      lockDuration.String(),
 			},
 		}, http.StatusTooManyRequests)
 		return
 	}
-	
-	if req.Username == username && req.Password == password {
+
+	// 验证用户名和密码
+	usernameMatch := req.Username == username
+	passwordMatch := false
+
+	// 检查密码是否为哈希格式（包含冒号分隔符）
+	if strings.Contains(password, ":") {
+		// 使用哈希验证
+		passwordMatch = PasswordUtil.VerifyPassword(req.Password, password)
+	} else {
+		// 兼容旧版本明文密码
+		passwordMatch = req.Password == password
+	}
+
+	if usernameMatch && passwordMatch {
 		logger.Info("用户登录成功，生成JWT token",
 			zap.String("username", req.Username),
 			zap.String("clientIP", c.ClientIP()),
 		)
-		
+
+		// 获取JWT密钥
+		var secret []byte
+		if configManager != nil {
+			secret = configManager.GetJWTSecret()
+		} else {
+			// 兼容旧版本
+			secret = jwtSecret
+		}
+
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"username": req.Username,
 			"exp":      time.Now().Add(24 * time.Hour).Unix(),
 		})
-		tokenString, err := token.SignedString(jwtSecret)
+		tokenString, err := token.SignedString(secret)
 		if err != nil {
 			logger.Error("Token生成失败",
 				zap.String("username", req.Username),
@@ -118,32 +161,38 @@ func LoginHandler(c *gin.Context) {
 			}, http.StatusInternalServerError)
 			return
 		}
-		
+
 		logger.Info("JWT token生成成功",
 			zap.String("username", req.Username),
 			zap.String("token", tokenString[:min(len(tokenString), 20)]+"..."),
 		)
-		
+
 		// 登录成功，清除失败记录
-		delete(loginFailMap, key)
-		
+		if authManager != nil {
+			authManager.ClearLoginFailures(key)
+		}
+
 		middleware.ResponseSuccess(c, map[string]string{
 			"token": tokenString,
 		}, "登录成功", nil)
 		return
 	}
-	
-	// 登录失败
-	loginFailMap[key] = struct {
-		Count    int
-		LastFail time.Time
-	}{failInfo.Count + 1, time.Now()}
-	
+
+	// 登录失败，记录失败次数
+	if authManager != nil {
+		authManager.RecordLoginFailure(key, maxLoginFail, lockDuration)
+	}
+
+	remainingAttempts := maxLoginFail
+	if authManager != nil {
+		remainingAttempts = authManager.GetRemainingAttempts(key, maxLoginFail)
+	}
+
 	middleware.ResponseError(c, logger, &model.APIError{
 		Code:    model.CodeAuthError,
 		Message: "用户名或密码错误",
 		Details: map[string]interface{}{
-			"remainingAttempts": maxLoginFail - (failInfo.Count + 1),
+			"remainingAttempts": remainingAttempts,
 			"lockTime":          lockDuration,
 		},
 	}, http.StatusUnauthorized)
