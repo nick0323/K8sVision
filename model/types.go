@@ -1,5 +1,28 @@
 package model
 
+// 基础结构体 - 用于减少重复字段
+type BaseMetadata struct {
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+}
+
+// 通用资源字段
+type CommonResourceFields struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	BaseMetadata
+}
+
+// 工作负载通用字段
+type WorkloadCommonFields struct {
+	CommonResourceFields
+	Available int32             `json:"available"`
+	Desired   int32             `json:"desired"`
+	Selector  map[string]string `json:"selector"`
+	Image     string            `json:"image"`
+}
+
 // 资源状态结构体
 
 type OverviewStatus struct {
@@ -226,172 +249,117 @@ type NodeMetricsMap map[string]NodeMetrics
 // PodDetail 提供给前端的 Pod 详情结构体
 // 可根据实际需求补充字段
 type PodDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	Status      string            `json:"status"`
-	PodIP       string            `json:"podIP"`
-	NodeName    string            `json:"nodeName"`
-	StartTime   string            `json:"startTime"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Containers  []string          `json:"containers"`
+	CommonResourceFields
+	PodIP      string   `json:"podIP"`
+	NodeName   string   `json:"nodeName"`
+	StartTime  string   `json:"startTime"`
+	Containers []string `json:"containers"`
 }
 
 // NodeDetail 提供给前端的 Node 详情结构体
 type NodeDetail struct {
-	Name         string            `json:"name"`
-	IP           string            `json:"ip"`
-	Status       string            `json:"status"`
-	CPUUsage     float64           `json:"cpuUsage"`
-	MemoryUsage  float64           `json:"memoryUsage"`
-	Role         []string          `json:"role"`
-	PodsUsed     int               `json:"podsUsed"`
-	PodsCapacity int               `json:"podsCapacity"`
-	Labels       map[string]string `json:"labels"`
-	Annotations  map[string]string `json:"annotations"`
+	CommonResourceFields          // 统一使用通用字段，避免重复
+	IP                   string   `json:"ip"`
+	CPUUsage             float64  `json:"cpuUsage"`
+	MemoryUsage          float64  `json:"memoryUsage"`
+	Role                 []string `json:"role"`
+	PodsUsed             int      `json:"podsUsed"`
+	PodsCapacity         int      `json:"podsCapacity"`
 }
 
 // ServiceDetail 提供给前端的 Service 详情结构体
 type ServiceDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	Type        string            `json:"type"`
-	ClusterIP   string            `json:"clusterIP"`
-	Ports       []string          `json:"ports"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Selector    map[string]string `json:"selector"`
+	CommonResourceFields
+	Type      string            `json:"type"`
+	ClusterIP string            `json:"clusterIP"`
+	Ports     []string          `json:"ports"`
+	Selector  map[string]string `json:"selector"`
 }
 
 // 工作负载资源详情结构体
 type DeploymentDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	Replicas    int32             `json:"replicas"`
-	Available   int32             `json:"available"`
-	Desired     int32             `json:"desired"`
-	Status      string            `json:"status"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Selector    map[string]string `json:"selector"`
-	Strategy    string            `json:"strategy"`
-	Image       string            `json:"image"`
+	WorkloadCommonFields
+	Replicas int32  `json:"replicas"`
+	Strategy string `json:"strategy"`
 }
 
 type StatefulSetDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	Replicas    int32             `json:"replicas"`
-	Available   int32             `json:"available"`
-	Desired     int32             `json:"desired"`
-	Status      string            `json:"status"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Selector    map[string]string `json:"selector"`
-	ServiceName string            `json:"serviceName"`
-	Image       string            `json:"image"`
+	WorkloadCommonFields
+	Replicas    int32  `json:"replicas"`
+	ServiceName string `json:"serviceName"`
 }
 
 type DaemonSetDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	Available   int32             `json:"available"`
-	Desired     int32             `json:"desired"`
-	Status      string            `json:"status"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Selector    map[string]string `json:"selector"`
-	Image       string            `json:"image"`
+	WorkloadCommonFields
 }
 
 type JobDetail struct {
-	Namespace      string            `json:"namespace"`
-	Name           string            `json:"name"`
-	Completions    int32             `json:"completions"`
-	Succeeded      int32             `json:"succeeded"`
-	Failed         int32             `json:"failed"`
-	StartTime      string            `json:"startTime"`
-	CompletionTime string            `json:"completionTime"`
-	Status         string            `json:"status"`
-	Labels         map[string]string `json:"labels"`
-	Annotations    map[string]string `json:"annotations"`
-	Image          string            `json:"image"`
+	CommonResourceFields
+	Completions    int32  `json:"completions"`
+	Succeeded      int32  `json:"succeeded"`
+	Failed         int32  `json:"failed"`
+	StartTime      string `json:"startTime"`
+	CompletionTime string `json:"completionTime"`
+	Image          string `json:"image"`
 }
 
 type CronJobDetail struct {
-	Namespace        string            `json:"namespace"`
-	Name             string            `json:"name"`
-	Schedule         string            `json:"schedule"`
-	Suspend          bool              `json:"suspend"`
-	Active           int               `json:"active"`
-	LastScheduleTime string            `json:"lastScheduleTime"`
-	Status           string            `json:"status"`
-	Labels           map[string]string `json:"labels"`
-	Annotations      map[string]string `json:"annotations"`
-	Image            string            `json:"image"`
+	CommonResourceFields
+	Schedule         string `json:"schedule"`
+	Suspend          bool   `json:"suspend"`
+	Active           int    `json:"active"`
+	LastScheduleTime string `json:"lastScheduleTime"`
+	Image            string `json:"image"`
 }
 
 // 网络资源详情结构体
 type IngressDetail struct {
-	Namespace     string            `json:"namespace"`
-	Name          string            `json:"name"`
-	Hosts         []string          `json:"hosts"`
-	Address       string            `json:"address"`
-	Ports         []string          `json:"ports"`
-	Class         string            `json:"class"`
-	Status        string            `json:"status"`
-	Path          []string          `json:"path"`
-	TargetService []string          `json:"targetService"`
-	Labels        map[string]string `json:"labels"`
-	Annotations   map[string]string `json:"annotations"`
+	CommonResourceFields
+	Hosts         []string `json:"hosts"`
+	Address       string   `json:"address"`
+	Ports         []string `json:"ports"`
+	Class         string   `json:"class"`
+	Path          []string `json:"path"`
+	TargetService []string `json:"targetService"`
 }
 
 // 其他资源详情结构体
 type NamespaceDetail struct {
-	Name        string            `json:"name"`
-	Status      string            `json:"status"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	BaseMetadata
 }
 
 type EventDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	Reason      string            `json:"reason"`
-	Message     string            `json:"message"`
-	Type        string            `json:"type"`
-	Count       int32             `json:"count"`
-	FirstSeen   string            `json:"firstSeen"`
-	LastSeen    string            `json:"lastSeen"`
-	Duration    string            `json:"duration"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
+	CommonResourceFields
+	Reason    string `json:"reason"`
+	Message   string `json:"message"`
+	Type      string `json:"type"`
+	Count     int32  `json:"count"`
+	FirstSeen string `json:"firstSeen"`
+	LastSeen  string `json:"lastSeen"`
+	Duration  string `json:"duration"`
 }
 
 // 存储资源详情结构体
 type PVCDetail struct {
-	Namespace    string            `json:"namespace"`
-	Name         string            `json:"name"`
-	Status       string            `json:"status"`
+	CommonResourceFields
 	Capacity     string            `json:"capacity"`
 	AccessMode   []string          `json:"accessMode"`
 	StorageClass string            `json:"storageClass"`
 	VolumeName   string            `json:"volumeName"`
-	Labels       map[string]string `json:"labels"`
-	Annotations  map[string]string `json:"annotations"`
 	Data         map[string]string `json:"data"`
 }
 
 type PVDetail struct {
-	Name          string            `json:"name"`
-	Status        string            `json:"status"`
-	Capacity      string            `json:"capacity"`
-	AccessMode    []string          `json:"accessMode"`
-	StorageClass  string            `json:"storageClass"`
-	ClaimRef      string            `json:"claimRef"`
-	ReclaimPolicy string            `json:"reclaimPolicy"`
-	Labels        map[string]string `json:"labels"`
-	Annotations   map[string]string `json:"annotations"`
+	Name          string   `json:"name"`
+	Status        string   `json:"status"`
+	Capacity      string   `json:"capacity"`
+	AccessMode    []string `json:"accessMode"`
+	StorageClass  string   `json:"storageClass"`
+	ClaimRef      string   `json:"claimRef"`
+	ReclaimPolicy string   `json:"reclaimPolicy"`
+	BaseMetadata
 }
 
 type StorageClassDetail struct {
@@ -400,38 +368,27 @@ type StorageClassDetail struct {
 	ReclaimPolicy     string            `json:"reclaimPolicy"`
 	VolumeBindingMode string            `json:"volumeBindingMode"`
 	IsDefault         bool              `json:"isDefault"`
-	Labels            map[string]string `json:"labels"`
-	Annotations       map[string]string `json:"annotations"`
 	Parameters        map[string]string `json:"parameters"`
+	BaseMetadata
 }
 
 // 配置资源详情结构体
 type ConfigMapDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	DataCount   int               `json:"dataCount"`
-	Keys        []string          `json:"keys"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Data        map[string]string `json:"data"`
+	CommonResourceFields
+	DataCount int               `json:"dataCount"`
+	Keys      []string          `json:"keys"`
+	Data      map[string]string `json:"data"`
 }
 
 type SecretDetail struct {
-	Namespace   string            `json:"namespace"`
-	Name        string            `json:"name"`
-	Type        string            `json:"type"`
-	DataCount   int               `json:"dataCount"`
-	Keys        []string          `json:"keys"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Data        map[string]string `json:"data"`
+	CommonResourceFields
+	Type      string            `json:"type"`
+	DataCount int               `json:"dataCount"`
+	Keys      []string          `json:"keys"`
+	Data      map[string]string `json:"data"`
 }
 
 // LoginRequest 登录参数
-// @Description 登录参数
-// @name LoginRequest
-// @Param username body string true "用户名"
-// @Param password body string true "密码"
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -492,6 +449,112 @@ func (n NodeStatus) GetSearchableFields() map[string]string {
 	return map[string]string{
 		"Name":   n.Name,
 		"IP":     n.IP,
+		"Status": n.Status,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (e EventStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      e.Name,
+		"Namespace": e.Namespace,
+		"Reason":    e.Reason,
+		"Message":   e.Message,
+		"Type":      e.Type,
+		"FirstSeen": e.FirstSeen,
+		"LastSeen":  e.LastSeen,
+		"Duration":  e.Duration,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (c CronJobStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":             c.Name,
+		"Namespace":        c.Namespace,
+		"Schedule":         c.Schedule,
+		"Status":           c.Status,
+		"LastScheduleTime": c.LastScheduleTime,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (j JobStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":           j.Name,
+		"Namespace":      j.Namespace,
+		"Status":         j.Status,
+		"StartTime":      j.StartTime,
+		"CompletionTime": j.CompletionTime,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (i IngressStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      i.Name,
+		"Namespace": i.Namespace,
+		"Address":   i.Address,
+		"Class":     i.Class,
+		"Status":    i.Status,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (p PVCStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":         p.Name,
+		"Namespace":    p.Namespace,
+		"Status":       p.Status,
+		"Capacity":     p.Capacity,
+		"StorageClass": p.StorageClass,
+		"VolumeName":   p.VolumeName,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (p PVStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":          p.Name,
+		"Status":        p.Status,
+		"Capacity":      p.Capacity,
+		"StorageClass":  p.StorageClass,
+		"ClaimRef":      p.ClaimRef,
+		"ReclaimPolicy": p.ReclaimPolicy,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (s StorageClassStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":              s.Name,
+		"Provisioner":       s.Provisioner,
+		"ReclaimPolicy":     s.ReclaimPolicy,
+		"VolumeBindingMode": s.VolumeBindingMode,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (c ConfigMapStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      c.Name,
+		"Namespace": c.Namespace,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (s SecretStatus) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":      s.Name,
+		"Namespace": s.Namespace,
+		"Type":      s.Type,
+	}
+}
+
+// GetSearchableFields 实现SearchableItem接口
+func (n NamespaceDetail) GetSearchableFields() map[string]string {
+	return map[string]string{
+		"Name":   n.Name,
 		"Status": n.Status,
 	}
 }

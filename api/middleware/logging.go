@@ -14,7 +14,7 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
 		method := c.Request.Method
-		traceId := getTraceID(c)
+		traceId := c.GetString("traceId")
 
 		// 记录请求开始日志
 		logger.Info("request started",

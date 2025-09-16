@@ -10,7 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Manager 缓存管理器
 type Manager struct {
 	caches map[string]Cache
 	mutex  sync.RWMutex
@@ -19,7 +18,6 @@ type Manager struct {
 	cancel context.CancelFunc
 }
 
-// Cache 缓存接口
 type Cache interface {
 	Set(key string, value interface{})
 	SetWithTTL(key string, value interface{}, ttl time.Duration)
@@ -32,7 +30,6 @@ type Cache interface {
 	GetStats() map[string]interface{}
 }
 
-// NewManager 创建缓存管理器
 func NewManager(config *model.CacheConfig, logger *zap.Logger) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -281,10 +278,19 @@ func (m *Manager) ClearExpired() {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
+	var totalCleaned int
 	for name, cache := range m.caches {
-		// 这里需要实现清理过期项的逻辑
-		// 目前MemoryCache已经有自动清理机制
-		_ = name
-		_ = cache
+		// 对于MemoryCache，我们可以手动触发清理
+		if memCache, ok := cache.(*MemoryCache); ok {
+			cleaned := memCache.ClearExpired()
+			totalCleaned += cleaned
+			m.logger.Debug("手动清理过期缓存项",
+				zap.String("cache", name),
+				zap.Int("cleaned", cleaned))
+		}
+	}
+
+	if totalCleaned > 0 {
+		m.logger.Info("清理过期缓存项完成", zap.Int("total", totalCleaned))
 	}
 }

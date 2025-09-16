@@ -9,22 +9,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListSecrets 获取 Secret 列表
 func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.SecretStatus, error) {
-	var secretList *v1.SecretList
-	var err error
-
-	if namespace == "" {
-		secretList, err = clientset.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
-	} else {
-		secretList, err = clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
-	}
-
+	secretList, err := ListResourcesWithNamespace(ctx, namespace,
+		func() (*v1.SecretList, error) {
+			return clientset.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
+		},
+		func(ns string) (*v1.SecretList, error) {
+			return clientset.CoreV1().Secrets(ns).List(ctx, metav1.ListOptions{})
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	var secretStatuses []model.SecretStatus
+	secretStatuses := make([]model.SecretStatus, 0, len(secretList.Items))
 	for _, secret := range secretList.Items {
 		secretStatus := model.SecretStatus{
 			Namespace: secret.Namespace,

@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ParseCPU: "123456n" -> float64(核)
 func ParseCPU(cpuStr string) float64 {
 	if cpuStr == "" {
 		return 0
@@ -30,7 +29,6 @@ func ParseCPU(cpuStr string) float64 {
 	return n
 }
 
-// ParseMemory: "123456Ki" -> float64(GiB)
 func ParseMemory(memStr string) float64 {
 	if memStr == "" {
 		return 0
@@ -51,7 +49,6 @@ func ParseMemory(memStr string) float64 {
 	return n
 }
 
-// 获取节点可分配 CPU（核）
 func GetNodeAllocatableCPU(node v1.Node) float64 {
 	if v, ok := node.Status.Allocatable["cpu"]; ok {
 		return float64(v.MilliValue()) / 1000
@@ -59,7 +56,6 @@ func GetNodeAllocatableCPU(node v1.Node) float64 {
 	return 0
 }
 
-// 获取节点可分配内存（GiB）
 func GetNodeAllocatableMemory(node v1.Node) float64 {
 	if v, ok := node.Status.Allocatable["memory"]; ok {
 		return float64(v.Value()) / 1024 / 1024 / 1024
@@ -67,7 +63,6 @@ func GetNodeAllocatableMemory(node v1.Node) float64 {
 	return 0
 }
 
-// ListNodes 采集 Node 信息，返回 NodeStatus 列表
 func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.PodList, nodeMetricsMap model.NodeMetricsMap) ([]model.NodeStatus, error) {
 	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -99,7 +94,6 @@ func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.Po
 				roles = append(roles, role)
 			}
 		}
-		// 如果没有找到角色标签，默认为worker
 		if len(roles) == 0 {
 			roles = append(roles, "worker")
 		}

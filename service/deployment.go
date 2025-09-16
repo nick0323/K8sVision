@@ -9,8 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListDeployments 采集指定命名空间（或全部）下的 Deployment 信息，返回 DeploymentStatus 列表
-// namespace 为空时返回所有命名空间
 func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.DeploymentStatus, error) {
 	depList, err := clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListDaemonSets 采集 DaemonSet 信息，支持命名空间过滤
 func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.DaemonSetStatus, error) {
 	dsList, err := clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {

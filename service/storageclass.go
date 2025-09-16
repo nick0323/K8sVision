@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListStorageClasses 获取 StorageClass 列表
 func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset) ([]model.StorageClassStatus, error) {
 	scList, err := clientset.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	if err != nil {

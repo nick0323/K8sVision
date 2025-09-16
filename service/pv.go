@@ -10,7 +10,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListPVs 获取 PV 列表
 func ListPVs(ctx context.Context, clientset *kubernetes.Clientset) ([]model.PVStatus, error) {
 	pvList, err := clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
 	if err != nil {

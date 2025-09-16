@@ -13,12 +13,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// 保留一位小数
 func round1(val float64) float64 {
 	return math.Round(val*10) / 10
 }
 
-// 资源用量统计（节点Capacity、Pod Requests/Limits）
 func calcResourceUsage(nodesRaw *corev1.NodeList, podList *corev1.PodList) (cpuCap, memCap, cpuReq, cpuLim, memReq, memLim float64) {
 	for _, node := range nodesRaw.Items {
 		if c, ok := node.Status.Capacity["cpu"]; ok {
@@ -53,7 +51,6 @@ func calcResourceUsage(nodesRaw *corev1.NodeList, podList *corev1.PodList) (cpuC
 	return round1(cpuCap), round1(memCap), round1(cpuReq), round1(cpuLim), round1(memReq), round1(memLim)
 }
 
-// GetOverviewStatus 采集集群总览信息，复用各资源采集逻辑，并发采集、减少API调用
 func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, error) {
 	overview := &model.OverviewStatus{}
 	ctx := context.Background()
@@ -76,25 +73,21 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 
-	// 并发采集 Pod
 	go func() {
 		defer wg.Done()
 		pods, podList, podsErr = ListPodsWithRaw(ctx, clientset, nil, "")
 	}()
 
-	// 并发采集节点原始数据
 	go func() {
 		defer wg.Done()
 		nodesRaw, nodesErr = clientset.CoreV1().Nodes().List(ctx, v1.ListOptions{})
 	}()
 
-	// 并发采集 Namespace
 	go func() {
 		defer wg.Done()
 		nsList, nsErr = ListNamespaces(ctx, clientset)
 	}()
 
-	// 并发采集 Service
 	go func() {
 		defer wg.Done()
 		services, servicesErr = ListServices(ctx, clientset, "")
@@ -102,14 +95,12 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 
 	wg.Wait()
 
-	// 节点状态统计（只用一次API结果）
 	var nodes []model.NodeStatus
 	var nodesStatusErr error
 	if nodesErr == nil && podList != nil {
 		nodes, nodesStatusErr = ListNodes(ctx, clientset, podList, nil)
 	}
 
-	// Pod统计
 	if podsErr == nil {
 		overview.PodCount = len(pods)
 		podNotReady := 0
@@ -121,7 +112,6 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 		overview.PodNotReady = podNotReady
 	}
 
-	// Node统计
 	if nodesStatusErr == nil {
 		overview.NodeCount = len(nodes)
 		nodeReady := 0
@@ -133,17 +123,14 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 		overview.NodeReady = nodeReady
 	}
 
-	// Namespace统计
 	if nsErr == nil {
 		overview.NamespaceCount = len(nsList)
 	}
 
-	// Service统计
 	if servicesErr == nil {
 		overview.ServiceCount = len(services)
 	}
 
-	// 资源用量统计
 	if nodesRaw != nil && podList != nil {
 		cpuCap, memCap, cpuReq, cpuLim, memReq, memLim := calcResourceUsage(nodesRaw, podList)
 		overview.CPUCapacity = cpuCap
@@ -153,8 +140,6 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 		overview.MemoryRequests = memReq
 		overview.MemoryLimits = memLim
 	}
-
-	// recent events 聚合
 	eventList, err := clientset.CoreV1().Events("").List(ctx, v1.ListOptions{})
 	if err == nil && eventList != nil {
 		events := eventList.Items

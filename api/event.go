@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/nick0323/K8sVision/api/middleware"
@@ -15,14 +13,13 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 // RegisterEvent 注册 Event 相关路由
 func RegisterEvent(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
-	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+	getK8sClient K8sClientProvider, // 使用类型别名简化签名
 	listEvents func(context.Context, *kubernetes.Clientset, string) ([]model.EventStatus, error),
 ) {
 	r.GET("/events", getEventList(logger, getK8sClient, listEvents))
@@ -30,95 +27,32 @@ func RegisterEvent(
 }
 
 // getEventList 获取Event列表的处理函数
-// @Summary 获取 Event 列表
-// @Description 获取Event列表，支持分页和搜索
-// @Tags Event
-// @Security BearerAuth
-// @Param namespace query string false "命名空间"
-// @Param limit query int false "每页数量"
-// @Param offset query int false "偏移量"
-// @Param search query string false "搜索关键词（支持名称、命名空间、原因等字段搜索）"
-// @Success 200 {object} model.APIResponse
-// @Router /events [get]
 func getEventList(
 	logger *zap.Logger,
-	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+	getK8sClient K8sClientProvider,
 	listEvents func(context.Context, *kubernetes.Clientset, string) ([]model.EventStatus, error),
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clientset, _, err := getK8sClient()
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-		ctx := context.Background()
-		namespace := c.DefaultQuery("namespace", "")
-		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-		search := c.DefaultQuery("search", "") // 新增：搜索关键词
-
-		events, err := listEvents(ctx, clientset, namespace)
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-
-		// 新增：如果提供了搜索关键词，先进行搜索过滤
-		var filteredEvents []model.EventStatus
-		if search != "" {
-			filteredEvents = filterEventsBySearch(events, search)
-		} else {
-			filteredEvents = events
-		}
-
-		// 按LastSeen时间倒序排列（最新事件在前）
-		sortEventsByLastSeen(filteredEvents)
-
-		// 对过滤后的数据进行分页
-		paged := Paginate(filteredEvents, offset, limit)
-		middleware.ResponseSuccess(c, paged, "success", &model.PageMeta{
-			Total:  len(filteredEvents), // 使用过滤后的总数
-			Limit:  limit,
-			Offset: offset,
-		})
+		HandleListWithPagination(c, logger, func(ctx context.Context, params PaginationParams) ([]model.EventStatus, error) {
+			clientset, _, err := getK8sClient()
+			if err != nil {
+				return nil, err
+			}
+			events, err := listEvents(ctx, clientset, params.Namespace)
+			if err != nil {
+				return nil, err
+			}
+			// 对原始数据进行排序（在搜索和分页之前）
+			sortEventsByLastSeen(events)
+			return events, nil
+		}, ListSuccessMessage) // 使用常量替代硬编码
 	}
-}
-
-// filterEventsBySearch 根据搜索关键词过滤Event
-func filterEventsBySearch(events []model.EventStatus, search string) []model.EventStatus {
-	if search == "" {
-		return events
-	}
-	searchLower := strings.ToLower(search)
-	var filtered []model.EventStatus
-	for _, event := range events {
-		if strings.Contains(strings.ToLower(event.Name), searchLower) ||
-			strings.Contains(strings.ToLower(event.Namespace), searchLower) ||
-			strings.Contains(strings.ToLower(event.Reason), searchLower) ||
-			strings.Contains(strings.ToLower(event.Message), searchLower) ||
-			strings.Contains(strings.ToLower(event.Type), searchLower) ||
-			strings.Contains(strings.ToLower(event.FirstSeen), searchLower) ||
-			strings.Contains(strings.ToLower(event.LastSeen), searchLower) ||
-			strings.Contains(strings.ToLower(event.Duration), searchLower) ||
-			strings.Contains(strings.ToLower(strconv.Itoa(int(event.Count))), searchLower) {
-			filtered = append(filtered, event)
-		}
-	}
-	return filtered
 }
 
 // getEventDetail 获取Event详情的处理函数
-// @Summary 获取 Event 详情
-// @Description 获取指定命名空间下的Event详情
-// @Tags Event
-// @Security BearerAuth
-// @Param namespace path string true "命名空间"
-// @Param name path string true "Event 名称"
-// @Success 200 {object} model.APIResponse
-// @Router /events/{namespace}/{name} [get]
 func getEventDetail(
 	logger *zap.Logger,
-	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+	getK8sClient K8sClientProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
@@ -126,7 +60,7 @@ func getEventDetail(
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		ctx := context.Background()
+		ctx := GetRequestContext(c)
 		ns := c.Param("namespace")
 		name := c.Param("name")
 		event, err := clientset.CoreV1().Events(ns).Get(ctx, name, metav1.GetOptions{})
@@ -136,19 +70,24 @@ func getEventDetail(
 		}
 
 		eventDetail := model.EventDetail{
-			Namespace:   event.Namespace,
-			Name:        event.Name,
-			Reason:      event.Reason,
-			Message:     event.Message,
-			Type:        event.Type,
-			Count:       event.Count,
-			FirstSeen:   event.FirstTimestamp.Format("2006-01-02 15:04:05"),
-			LastSeen:    event.LastTimestamp.Format("2006-01-02 15:04:05"),
-			Duration:    event.LastTimestamp.Sub(event.FirstTimestamp.Time).String(),
-			Labels:      event.Labels,
-			Annotations: event.Annotations,
+			CommonResourceFields: model.CommonResourceFields{
+				Namespace: event.Namespace,
+				Name:      event.Name,
+				Status:    event.Type,
+				BaseMetadata: model.BaseMetadata{
+					Labels:      event.Labels,
+					Annotations: event.Annotations,
+				},
+			},
+			Reason:    event.Reason,
+			Message:   event.Message,
+			Type:      event.Type,
+			Count:     event.Count,
+			FirstSeen: event.FirstTimestamp.Format("2006-01-02 15:04:05"),
+			LastSeen:  event.LastTimestamp.Format("2006-01-02 15:04:05"),
+			Duration:  event.LastTimestamp.Sub(event.FirstTimestamp.Time).String(),
 		}
-		middleware.ResponseSuccess(c, eventDetail, "success", nil)
+		middleware.ResponseSuccess(c, eventDetail, DetailSuccessMessage, nil)
 	}
 }
 
@@ -158,12 +97,12 @@ func sortEventsByLastSeen(events []model.EventStatus) {
 		// 解析时间字符串进行比较
 		timeI, errI := time.Parse("2006-01-02 15:04:05", events[i].LastSeen)
 		timeJ, errJ := time.Parse("2006-01-02 15:04:05", events[j].LastSeen)
-		
+
 		// 如果解析失败，保持原始顺序
 		if errI != nil || errJ != nil {
 			return false
 		}
-		
+
 		// 倒序排列：最新的时间在前
 		return timeI.After(timeJ)
 	})

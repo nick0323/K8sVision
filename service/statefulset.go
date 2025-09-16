@@ -9,8 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListStatefulSets 采集指定命名空间（或全部）下的 StatefulSet 信息，返回 StatefulSetStatus 列表
-// namespace 为空时返回所有命名空间
 func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.StatefulSetStatus, error) {
 	stsList, err := clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListNamespaces 采集指定 context 下的所有命名空间详细信息
 func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]model.NamespaceDetail, error) {
 	nsList, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -17,10 +16,12 @@ func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]mod
 	result := make([]model.NamespaceDetail, 0, len(nsList.Items))
 	for _, ns := range nsList.Items {
 		result = append(result, model.NamespaceDetail{
-			Name:        ns.Name,
-			Status:      string(ns.Status.Phase),
-			Labels:      ns.Labels,
-			Annotations: ns.Annotations,
+			Name:   ns.Name,
+			Status: string(ns.Status.Phase),
+			BaseMetadata: model.BaseMetadata{
+				Labels:      ns.Labels,
+				Annotations: ns.Annotations,
+			},
 		})
 	}
 	return result, nil

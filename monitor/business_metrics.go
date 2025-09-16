@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// BusinessMetric 业务指标
 type BusinessMetric struct {
 	Name       string
 	Value      float64
@@ -16,7 +15,6 @@ type BusinessMetric struct {
 	MetricType string // counter, gauge, histogram, summary
 }
 
-// BusinessMetricsCollector 业务指标收集器
 type BusinessMetricsCollector struct {
 	logger     *zap.Logger
 	metrics    map[string]*BusinessMetric
@@ -24,7 +22,6 @@ type BusinessMetricsCollector struct {
 	collectors []MetricCollector
 }
 
-// MetricCollector 指标收集器接口
 type MetricCollector interface {
 	Collect() []BusinessMetric
 	GetName() string
@@ -235,4 +232,3 @@ func InitBusinessMetrics(logger *zap.Logger) {
 func GetBusinessMetricsCollector() *BusinessMetricsCollector {
 	return globalBusinessCollector
 }
-

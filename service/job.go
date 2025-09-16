@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListJobs 采集 Job 信息，支持命名空间过滤
 func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.JobStatus, error) {
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -18,18 +17,17 @@ func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace st
 	result := make([]model.JobStatus, 0, len(jobs.Items))
 	for _, job := range jobs.Items {
 		status := GetJobStatus(job.Status.Succeeded, job.Status.Failed, job.Status.Active)
-		
-		// 处理时间字段
+
 		startTime := ""
 		if job.Status.StartTime != nil {
 			startTime = job.Status.StartTime.Format("2006-01-02 15:04:05")
 		}
-		
+
 		completionTime := ""
 		if job.Status.CompletionTime != nil {
 			completionTime = job.Status.CompletionTime.Format("2006-01-02 15:04:05")
 		}
-		
+
 		result = append(result, model.JobStatus{
 			Namespace:      job.Namespace,
 			Name:           job.Name,

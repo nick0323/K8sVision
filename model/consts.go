@@ -7,37 +7,81 @@ import (
 )
 
 const (
-	StatusRunning   = "Running"
-	StatusSucceeded = "Succeeded"
-	StatusFailed    = "Failed"
-	StatusPending   = "Pending"
-	StatusUnknown   = "Unknown"
-	StatusActive    = "Active"
-	StatusSuspended = "Suspended"
-	StatusHealthy   = "Healthy"
-	StatusAbnormal  = "Abnormal"
-	StatusPartial   = "PartialAvailable"
-	TimeFormat      = "2006-01-02 15:04:05"
+	StatusRunning      = "Running"
+	StatusSucceeded    = "Succeeded"
+	StatusFailed       = "Failed"
+	StatusPending      = "Pending"
+	StatusUnknown      = "Unknown"
+	StatusActive       = "Active"
+	StatusSuspended    = "Suspended"
+	StatusHealthy      = "Healthy"
+	StatusAbnormal     = "Abnormal"
+	StatusPartial      = "PartialAvailable"
+	StatusReady        = "Ready"
+	StatusNotReady     = "Not Ready"
+	StatusScaledToZero = "Scaled to zero"
 )
 
-// 错误码常量定义
 const (
-	// 成功
+	TimeFormat      = "2006-01-02 15:04:05"
+	TimeFormatShort = "2006-01-02"
+	TimeFormatLong  = "2006-01-02 15:04:05.000"
+)
+
+const (
+	HTTPStatusOK                  = 200
+	HTTPStatusBadRequest          = 400
+	HTTPStatusUnauthorized        = 401
+	HTTPStatusForbidden           = 403
+	HTTPStatusNotFound            = 404
+	HTTPStatusMethodNotAllowed    = 405
+	HTTPStatusConflict            = 409
+	HTTPStatusInternalServerError = 500
+	HTTPStatusServiceUnavailable  = 503
+)
+
+const (
+	DefaultPageSize     = 20
+	DefaultPageOffset   = 0
+	DefaultCacheTTL     = 300
+	DefaultJWTSecretLen = 32
+	DefaultPasswordLen  = 12
+	MaxPasswordLen      = 128
+	MinPasswordLen      = 8
+)
+
+const (
+	CacheKeyPrefixK8sClient = "k8s_client_"
+	CacheKeyPrefixResource  = "resource_"
+	CacheKeyPrefixMetrics   = "metrics_"
+)
+
+const (
+	LogLevelDebug = "debug"
+	LogLevelInfo  = "info"
+	LogLevelWarn  = "warn"
+	LogLevelError = "error"
+)
+
+const (
+	LogFormatConsole = "console"
+	LogFormatJSON    = "json"
+)
+
+const (
 	CodeSuccess = 0
 
-	// 客户端错误 (1000-1999)
-	CodeBadRequest          = 1000
-	CodeUnauthorized        = 1001
-	CodeForbidden           = 1002
-	CodeNotFound            = 1003
-	CodeMethodNotAllowed    = 1004
-	CodeRequestTimeout      = 1005
-	CodeConflict            = 1006
-	CodeValidationFailed    = 1007
-	CodeInvalidParameter    = 1008
-	CodeMissingParameter    = 1009
+	CodeBadRequest       = 1000
+	CodeUnauthorized     = 1001
+	CodeForbidden        = 1002
+	CodeNotFound         = 1003
+	CodeMethodNotAllowed = 1004
+	CodeRequestTimeout   = 1005
+	CodeConflict         = 1006
+	CodeValidationFailed = 1007
+	CodeInvalidParameter = 1008
+	CodeMissingParameter = 1009
 
-	// 服务器错误 (2000-2999)
 	CodeInternalServerError = 2000
 	CodeServiceUnavailable  = 2001
 	CodeDatabaseError       = 2002
@@ -46,7 +90,6 @@ const (
 	CodeConfigError         = 2005
 	CodeAuthError           = 2006
 
-	// 业务错误 (3000-3999)
 	CodeResourceNotFound    = 3000
 	CodeResourceExists      = 3001
 	CodeResourceInUse       = 3002
@@ -54,7 +97,6 @@ const (
 	CodePermissionDenied    = 3004
 )
 
-// 错误信息映射
 var ErrorMessages = map[int]string{
 	CodeSuccess:             "操作成功",
 	CodeBadRequest:          "请求参数错误",
@@ -81,7 +123,6 @@ var ErrorMessages = map[int]string{
 	CodePermissionDenied:    "权限不足",
 }
 
-// GetErrorMessage 获取错误信息
 func GetErrorMessage(code int) string {
 	if msg, exists := ErrorMessages[code]; exists {
 		return msg

@@ -79,7 +79,8 @@ type CacheConfig struct {
 	CleanupInterval time.Duration `mapstructure:"cleanupInterval" json:"cleanupInterval"`
 }
 
-// DefaultConfig 返回默认配置
+// DefaultConfig 返回系统默认配置
+// 包含服务器、Kubernetes、JWT、日志、认证和缓存的默认设置
 func DefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -99,7 +100,7 @@ func DefaultConfig() *Config {
 			Insecure:   true,
 		},
 		JWT: JWTConfig{
-			Secret:     "k8svision-secret-key",
+			Secret:     "", // 生产环境请设置环境变量 K8SVISION_JWT_SECRET
 			Expiration: 24 * time.Hour,
 			Issuer:     "k8svision",
 			Audience:   "k8svision-client",
@@ -114,8 +115,8 @@ func DefaultConfig() *Config {
 			Compress:   true,
 		},
 		Auth: AuthConfig{
-			Username:        "admin",
-			Password:        "admin",
+			Username:        "", // 生产环境请设置环境变量 K8SVISION_AUTH_USERNAME
+			Password:        "", // 生产环境请设置环境变量 K8SVISION_AUTH_PASSWORD
 			MaxLoginFail:    5,
 			LockDuration:    10 * time.Minute,
 			SessionTimeout:  24 * time.Hour,
@@ -150,10 +151,10 @@ func (c *Config) Validate() error {
 
 	// 验证JWT配置
 	if c.JWT.Secret == "" {
-		return fmt.Errorf("JWT密钥不能为空")
+		return fmt.Errorf("JWT密钥不能为空，请设置环境变量 JWT_SECRET 或在配置文件中设置 jwt.secret")
 	}
 	if len(c.JWT.Secret) < 32 {
-		return fmt.Errorf("JWT密钥长度至少32位")
+		return fmt.Errorf("JWT密钥长度至少32位字符，当前长度: %d", len(c.JWT.Secret))
 	}
 	if c.JWT.Expiration <= 0 {
 		return fmt.Errorf("JWT过期时间必须大于0")
@@ -161,10 +162,10 @@ func (c *Config) Validate() error {
 
 	// 验证认证配置
 	if c.Auth.Username == "" {
-		return fmt.Errorf("认证用户名不能为空")
+		return fmt.Errorf("认证用户名不能为空，请设置环境变量 LOGIN_USERNAME 或在配置文件中设置 auth.username")
 	}
 	if c.Auth.Password == "" {
-		return fmt.Errorf("认证密码不能为空")
+		return fmt.Errorf("认证密码不能为空，请设置环境变量 LOGIN_PASSWORD 或在配置文件中设置 auth.password")
 	}
 	if c.Auth.MaxLoginFail <= 0 {
 		return fmt.Errorf("最大登录失败次数必须大于0")

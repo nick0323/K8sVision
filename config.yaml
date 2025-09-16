@@ -1,15 +1,16 @@
+# K8sVision 配置文件
 server:
-  port: 8080
+  port: "8080"
   host: "0.0.0.0"
-  readTimeout: 30s
-  writeTimeout: 30s
-  idleTimeout: 60s
-  maxHeaderBytes: 1048576
+  readTimeout: "30s"
+  writeTimeout: "30s"
+  idleTimeout: "60s"
+  maxHeaderBytes: 1048576  # 1MB
 
 kubernetes:
   kubeconfig: ""
   context: ""
-  timeout: 30s
+  timeout: "30s"
   qps: 100
   burst: 200
   insecure: true
@@ -20,8 +21,8 @@ kubernetes:
   apiServer: ""
 
 jwt:
-  secret: "abcdefgABCDEFGhijklmnHIJKLMNopqresOPQRST"
-  expiration: 24h
+  secret: ""  # 设置环境变量 K8SVISION_JWT_SECRET (至少32位字符)
+  expiration: "24h"
   issuer: "k8svision"
   audience: "k8svision-client"
 
@@ -35,17 +36,17 @@ log:
   compress: true
 
 auth:
-  username: "admin"
-  password: "admin"
+  username: ""  # 设置环境变量 K8SVISION_AUTH_USERNAME
+  password: ""  # 设置环境变量 K8SVISION_AUTH_PASSWORD (建议使用哈希密码)
   maxLoginFail: 5
-  lockDuration: 10m
-  sessionTimeout: 24h
+  lockDuration: "10m"
+  sessionTimeout: "24h"
   enableRateLimit: true
   rateLimit: 100
 
 cache:
   enabled: true
   type: "memory"
-  ttl: 5m
+  ttl: "5m"
   maxSize: 1000
-  cleanupInterval: 10m 
+  cleanupInterval: "10m"

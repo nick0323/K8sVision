@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListIngresses 采集指定 context 下的 Ingress 信息，返回 IngressStatus 列表
 func ListIngresses(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.IngressStatus, error) {
 	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {

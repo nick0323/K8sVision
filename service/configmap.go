@@ -9,22 +9,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListConfigMaps 获取 ConfigMap 列表
 func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.ConfigMapStatus, error) {
-	var cmList *v1.ConfigMapList
-	var err error
-
-	if namespace == "" {
-		cmList, err = clientset.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{})
-	} else {
-		cmList, err = clientset.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
-	}
-
+	cmList, err := ListResourcesWithNamespace(ctx, namespace,
+		func() (*v1.ConfigMapList, error) {
+			return clientset.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{})
+		},
+		func(ns string) (*v1.ConfigMapList, error) {
+			return clientset.CoreV1().ConfigMaps(ns).List(ctx, metav1.ListOptions{})
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	var cmStatuses []model.ConfigMapStatus
+	cmStatuses := make([]model.ConfigMapStatus, 0, len(cmList.Items))
 	for _, cm := range cmList.Items {
 		cmStatus := model.ConfigMapStatus{
 			Namespace: cm.Namespace,

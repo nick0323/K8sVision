@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -123,31 +124,99 @@ func ConcurrencyMiddleware(maxConcurrency int) gin.HandlerFunc {
 	}
 }
 
-// RateLimitMiddleware 速率限制中间件
-func RateLimitMiddleware(limit int, window time.Duration) gin.HandlerFunc {
-	// 简单的内存速率限制器
-	// 实际生产环境建议使用Redis等外部存储
-	limiters := make(map[string]*rateLimiter)
+// rateLimitManager 速率限制管理器（带过期清理）
+type rateLimitManager struct {
+	limiters    map[string]*rateLimiterEntry
+	limit       int
+	window      time.Duration
+	mutex       sync.RWMutex
+	stopCleanup chan struct{}
+}
 
-	return func(c *gin.Context) {
-		clientIP := c.ClientIP()
+// rateLimiterEntry 速率限制器条目
+type rateLimiterEntry struct {
+	limiter    *rateLimiter
+	lastAccess time.Time
+}
 
-		limiter, exists := limiters[clientIP]
-		if !exists {
-			limiter = newRateLimiter(limit, window)
-			limiters[clientIP] = limiter
+// newRateLimitManager 创建速率限制管理器
+func newRateLimitManager(limit int, window time.Duration) *rateLimitManager {
+	mgr := &rateLimitManager{
+		limiters:    make(map[string]*rateLimiterEntry),
+		limit:       limit,
+		window:      window,
+		stopCleanup: make(chan struct{}),
+	}
+
+	// 启动清理协程，每5分钟清理一次过期的限制器
+	go mgr.startCleanup()
+
+	return mgr
+}
+
+// Allow 检查是否允许请求
+func (mgr *rateLimitManager) Allow(clientIP string) bool {
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	entry, exists := mgr.limiters[clientIP]
+	if !exists {
+		entry = &rateLimiterEntry{
+			limiter:    newRateLimiter(mgr.limit, mgr.window),
+			lastAccess: time.Now(),
 		}
+		mgr.limiters[clientIP] = entry
+	} else {
+		entry.lastAccess = time.Now()
+	}
 
-		if !limiter.Allow() {
-			c.JSON(429, gin.H{
-				"code":    429,
-				"message": "请求过于频繁，请稍后重试",
-			})
-			c.Abort()
+	return entry.limiter.Allow()
+}
+
+// startCleanup 启动清理协程
+func (mgr *rateLimitManager) startCleanup() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			mgr.cleanup()
+		case <-mgr.stopCleanup:
 			return
 		}
+	}
+}
 
-		c.Next()
+// cleanup 清理过期的限制器（超过10分钟未使用）
+func (mgr *rateLimitManager) cleanup() {
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	now := time.Now()
+	expired := make([]string, 0)
+
+	for ip, entry := range mgr.limiters {
+		if now.Sub(entry.lastAccess) > 10*time.Minute {
+			expired = append(expired, ip)
+			entry.limiter.Close() // 关闭限制器的协程
+		}
+	}
+
+	for _, ip := range expired {
+		delete(mgr.limiters, ip)
+	}
+}
+
+// Close 关闭管理器
+func (mgr *rateLimitManager) Close() {
+	close(mgr.stopCleanup)
+
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+
+	for _, entry := range mgr.limiters {
+		entry.limiter.Close()
 	}
 }
 

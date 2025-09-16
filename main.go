@@ -1,29 +1,9 @@
 // Package main K8sVision 主程序
-// @title K8sVision API
-// @version 1.0
-// @description K8sVision 后端 API 文档
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8080
-// @BasePath /api
-
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description 输入 "Bearer " 加上JWT token，例如: "Bearer abcde12345"
 
 package main
 
 import (
 	"flag"
-	"os"
 	"time"
 
 	"github.com/nick0323/K8sVision/api"
@@ -36,19 +16,35 @@ import (
 	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
-
-	_ "github.com/nick0323/K8sVision/docs"
 )
 
-var (
-	configFile = flag.String("config", "", "配置文件路径")
+const (
+	DefaultConfigFile = ""
+	HealthCheckPath   = "/health"
+	CacheStatsPath    = "/cache/stats"
+	APIPrefix         = "/api"
+	LoginPath         = "/api/login"
+	ConsoleFormat     = "console"
+	JSONFormat        = "json"
+)
+
+type Application struct {
+	configFile string
 	logger     *zap.Logger
 	configMgr  *config.Manager
 	cacheMgr   *cache.Manager
 	monitorMgr *monitor.Monitor
+}
+
+var (
+	configFile  = flag.String("config", DefaultConfigFile, "配置文件路径")
+	logLevelMap = map[string]zap.AtomicLevel{
+		"debug": zap.NewAtomicLevelAt(zap.DebugLevel),
+		"info":  zap.NewAtomicLevelAt(zap.InfoLevel),
+		"warn":  zap.NewAtomicLevelAt(zap.WarnLevel),
+		"error": zap.NewAtomicLevelAt(zap.ErrorLevel),
+	}
 )
 
 func initLogger(cfg *model.Config) (*zap.Logger, error) {
@@ -60,80 +56,64 @@ func initLogger(cfg *model.Config) (*zap.Logger, error) {
 		zapConfig = zap.NewProductionConfig()
 	}
 
-	switch cfg.Log.Level {
-	case "debug":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-	case "info":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
-	case "warn":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
-	case "error":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
-	default:
+	if level, exists := logLevelMap[cfg.Log.Level]; exists {
+		zapConfig.Level = level
+	} else {
 		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
 
-	if cfg.Log.Format == "console" {
-		zapConfig.Encoding = "console"
+	if cfg.Log.Format == ConsoleFormat {
+		zapConfig.Encoding = ConsoleFormat
 	} else {
-		zapConfig.Encoding = "json"
+		zapConfig.Encoding = JSONFormat
 	}
 
 	return zapConfig.Build()
 }
 
-func main() {
-	flag.Parse()
+func NewApplication(configFile string) *Application {
+	return &Application{
+		configFile: configFile,
+	}
+}
 
+func (app *Application) Initialize() error {
 	tempLogger, _ := zap.NewProduction()
+	app.configMgr = config.NewManager(tempLogger)
 
-	configMgr = config.NewManager(tempLogger)
-
-	if err := configMgr.Load(*configFile); err != nil {
+	if err := app.configMgr.Load(app.configFile); err != nil {
 		tempLogger.Fatal("加载配置失败", zap.Error(err))
 	}
 
-	cfg := configMgr.GetConfig()
+	cfg := app.configMgr.GetConfig()
 
 	var err error
-	logger, err = initLogger(cfg)
+	app.logger, err = initLogger(cfg)
 	if err != nil {
 		tempLogger.Fatal("初始化日志失败", zap.Error(err))
 	}
-	defer logger.Sync()
 
-	// 重新创建配置管理器，使用新的logger
-	configMgr = config.NewManager(logger)
-	if err := configMgr.Load(*configFile); err != nil {
-		logger.Fatal("重新加载配置失败", zap.Error(err))
+	app.configMgr.UpdateLogger(app.logger)
+	app.cacheMgr = cache.NewManager(&cfg.Cache, app.logger)
+	app.monitorMgr = monitor.NewMonitor(app.logger)
+
+	service.SetConfigManager(app.configMgr)
+	service.SetCacheManager(app.cacheMgr)
+	api.SetConfigManager(app.configMgr)
+	api.InitAuthManager(app.logger)
+
+	monitor.InitTracing(app.logger)
+	monitor.InitBusinessMetrics(app.logger)
+
+	if err := app.configMgr.Watch(); err != nil {
+		app.logger.Warn("启动配置监听失败", zap.Error(err))
 	}
 
-	cacheMgr = cache.NewManager(&cfg.Cache, logger)
-	defer cacheMgr.Close()
+	return nil
+}
 
-	monitorMgr = monitor.NewMonitor(logger)
-	defer monitorMgr.Close()
-
-	service.SetConfigManager(configMgr)
-	service.SetCacheManager(cacheMgr)
-
-	api.InitJWTSecret()
-
-	// 设置配置管理器到各个模块
-	api.SetConfigManager(configMgr)
-	middleware.SetConfigManager(configMgr)
-
-	// 初始化认证管理器
-	api.InitAuthManager(logger)
-
-	// 初始化追踪和业务指标
-	monitor.InitTracing(logger)
-	monitor.InitBusinessMetrics(logger)
-
-	if err := configMgr.Watch(); err != nil {
-		logger.Warn("启动配置监听失败", zap.Error(err))
-	}
-	defer configMgr.Close()
+func (app *Application) SetupRouter() *gin.Engine {
+	cfg := app.configMgr.GetConfig()
 
 	if cfg.IsDevelopment() {
 		gin.SetMode(gin.DebugMode)
@@ -142,37 +122,69 @@ func main() {
 	}
 
 	r := gin.New()
+	app.registerMiddlewares(r, cfg)
+	app.registerRoutes(r, cfg)
+	return r
+}
 
-	r.Use(middleware.ErrorHandler(logger))
+func (app *Application) registerMiddlewares(r *gin.Engine, cfg *model.Config) {
+	r.Use(middleware.Recovery(app.logger))
 	r.Use(middleware.TraceMiddleware())
-	r.Use(middleware.LoggingMiddleware(logger))
-	r.Use(middleware.MetricsMiddleware(monitorMgr.GetMetrics()))
+	r.Use(middleware.LoggingMiddleware(app.logger))
+	r.Use(middleware.MetricsMiddleware(app.monitorMgr.GetMetrics()))
 
 	if cfg.Auth.EnableRateLimit {
 		r.Use(middleware.ConcurrencyMiddleware(cfg.Auth.RateLimit))
 	}
+}
 
-	r.POST("/api/login", api.LoginHandler)
+func (app *Application) registerRoutes(r *gin.Engine, cfg *model.Config) {
+	r.POST(LoginPath, api.LoginHandler(app.logger))
 
-	if os.Getenv("SWAGGER_ENABLE") == "true" {
-		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	}
+	r.GET(CacheStatsPath, app.handleCacheStats)
+	r.GET(HealthCheckPath, app.handleHealthCheck)
 
-	// 健康检查和指标路由已移至API组中
-
-	r.GET("/cache/stats", func(c *gin.Context) {
-		stats := cacheMgr.GetAllStats()
-		c.JSON(200, stats)
-	})
-
-	apiGroup := r.Group("/api")
-	apiGroup.Use(middleware.JWTAuthMiddleware(logger))
+	apiGroup := r.Group(APIPrefix)
+	apiGroup.Use(middleware.JWTAuthMiddleware(app.logger, app.configMgr))
 
 	if cfg.Cache.Enabled {
-		apiGroup.Use(middleware.CacheMiddleware(cacheMgr, cfg.Cache.TTL))
+		apiGroup.Use(middleware.CacheMiddleware(app.cacheMgr, cfg.Cache.TTL))
 	}
 
-	api.RegisterOverview(apiGroup, logger, func(limit, offset int) (*model.OverviewStatus, string, error) {
+	app.registerAPIRoutes(apiGroup)
+}
+
+func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
+	api.RegisterOverview(apiGroup, app.logger, app.getOverviewHandler())
+
+	api.RegisterNode(apiGroup, app.logger, service.GetK8sClient, service.ListPodsWithRaw, service.ListNodes)
+	api.RegisterPod(apiGroup, app.logger, service.GetK8sClient, service.ListPodsWithRaw)
+	api.RegisterDeployment(apiGroup, app.logger, service.GetK8sClient, service.ListDeployments)
+	api.RegisterStatefulSet(apiGroup, app.logger, service.GetK8sClient, service.ListStatefulSets)
+	api.RegisterDaemonSet(apiGroup, app.logger, service.GetK8sClient, service.ListDaemonSets)
+
+	api.RegisterService(apiGroup, app.logger, service.GetK8sClient, service.ListServices)
+	api.RegisterIngress(apiGroup, app.logger, service.GetK8sClient, service.ListIngresses)
+
+	api.RegisterCronJob(apiGroup, app.logger, service.GetK8sClient, service.ListCronJobs)
+	api.RegisterJob(apiGroup, app.logger, service.GetK8sClient, service.ListJobs)
+
+	api.RegisterNamespace(apiGroup, app.logger, service.GetK8sClient, service.ListNamespaces)
+	api.RegisterEvent(apiGroup, app.logger, service.GetK8sClient, service.ListEvents)
+
+	api.RegisterPVC(apiGroup, app.logger, service.GetK8sClient, service.ListPVCs)
+	api.RegisterPV(apiGroup, app.logger, service.GetK8sClient, service.ListPVs)
+	api.RegisterStorageClass(apiGroup, app.logger, service.GetK8sClient, service.ListStorageClasses)
+
+	api.RegisterConfigMap(apiGroup, app.logger, service.GetK8sClient, service.ListConfigMaps)
+	api.RegisterSecret(apiGroup, app.logger, service.GetK8sClient, service.ListSecrets)
+
+	api.RegisterPasswordAdmin(apiGroup, app.logger)
+	api.RegisterMetrics(apiGroup, app.logger)
+}
+
+func (app *Application) getOverviewHandler() func(limit, offset int) (*model.OverviewStatus, string, error) {
+	return func(limit, offset int) (*model.OverviewStatus, string, error) {
 		clientset, _, err := service.GetK8sClient()
 		if err != nil {
 			return nil, "k8s client error", err
@@ -182,52 +194,64 @@ func main() {
 			return nil, "overview error", err
 		}
 		return overview, "", nil
+	}
+}
+
+func (app *Application) handleCacheStats(c *gin.Context) {
+	stats := app.cacheMgr.GetAllStats()
+	c.JSON(200, stats)
+}
+
+func (app *Application) handleHealthCheck(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status":    "healthy",
+		"timestamp": time.Now().Unix(),
+		"version":   "1.0.0",
 	})
+}
 
-	api.RegisterNode(apiGroup, logger, service.GetK8sClient, service.ListPodsWithRaw, service.ListNodes)
-	api.RegisterPod(apiGroup, logger, service.GetK8sClient, service.ListPodsWithRaw)
-	api.RegisterDeployment(apiGroup, logger, service.GetK8sClient, service.ListDeployments)
-	api.RegisterStatefulSet(apiGroup, logger, service.GetK8sClient, service.ListStatefulSets)
-	api.RegisterDaemonSet(apiGroup, logger, service.GetK8sClient, service.ListDaemonSets)
-
-	api.RegisterService(apiGroup, logger, service.GetK8sClient, service.ListServices)
-	api.RegisterIngress(apiGroup, logger, service.GetK8sClient, service.ListIngresses)
-
-	api.RegisterCronJob(apiGroup, logger, service.GetK8sClient, service.ListCronJobs)
-	api.RegisterJob(apiGroup, logger, service.GetK8sClient, service.ListJobs)
-
-	api.RegisterNamespace(apiGroup, logger, service.GetK8sClient, service.ListNamespaces)
-	api.RegisterEvent(apiGroup, logger, service.GetK8sClient, service.ListEvents)
-
-	api.RegisterPVC(apiGroup, logger, service.GetK8sClient, service.ListPVCs)
-	api.RegisterPV(apiGroup, logger, service.GetK8sClient, service.ListPVs)
-	api.RegisterStorageClass(apiGroup, logger, service.GetK8sClient, service.ListStorageClasses)
-
-	api.RegisterConfigMap(apiGroup, logger, service.GetK8sClient, service.ListConfigMaps)
-	api.RegisterSecret(apiGroup, logger, service.GetK8sClient, service.ListSecrets)
-
-	// 注册密码管理路由
-	api.RegisterPasswordAdmin(apiGroup, logger)
-
-	// 注册指标路由
-	api.RegisterMetrics(apiGroup, logger)
-
-	// 注册健康检查路由
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":    "healthy",
-			"timestamp": time.Now().Unix(),
-			"version":   "1.0.0",
-		})
-	})
-
-	monitorMgr.StartPeriodicLogging(5 * time.Minute)
-
+func (app *Application) Run() error {
+	cfg := app.configMgr.GetConfig()
 	serverAddr := cfg.GetServerAddress()
-	logger.Info("服务器启动",
+
+	app.logger.Info("服务器启动",
 		zap.String("address", serverAddr),
 		zap.Bool("cacheEnabled", cfg.Cache.Enabled),
 		zap.Bool("rateLimitEnabled", cfg.Auth.EnableRateLimit),
 	)
-	r.Run(serverAddr)
+
+	app.monitorMgr.StartPeriodicLogging(5 * time.Minute)
+	router := app.SetupRouter()
+	return router.Run(serverAddr)
+}
+
+func (app *Application) Close() {
+	if app.logger != nil {
+		app.logger.Sync()
+	}
+	if app.cacheMgr != nil {
+		app.cacheMgr.Close()
+	}
+	if app.monitorMgr != nil {
+		app.monitorMgr.Close()
+	}
+	if app.configMgr != nil {
+		app.configMgr.Close()
+	}
+}
+
+func main() {
+	flag.Parse()
+
+	app := NewApplication(*configFile)
+
+	if err := app.Initialize(); err != nil {
+		app.logger.Fatal("应用初始化失败", zap.Error(err))
+	}
+
+	defer app.Close()
+
+	if err := app.Run(); err != nil {
+		app.logger.Fatal("应用运行失败", zap.Error(err))
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Manager 配置管理器
 type Manager struct {
 	config     *model.Config
 	viper      *viper.Viper
@@ -24,7 +24,6 @@ type Manager struct {
 	configFile string
 }
 
-// NewManager 创建配置管理器
 func NewManager(logger *zap.Logger) *Manager {
 	return &Manager{
 		config: model.DefaultConfig(),
@@ -33,7 +32,6 @@ func NewManager(logger *zap.Logger) *Manager {
 	}
 }
 
-// Load 加载配置
 func (m *Manager) Load(configFile string) error {
 	m.configFile = configFile
 
@@ -222,11 +220,9 @@ func (m *Manager) applyEnvironmentOverrides() {
 	}
 }
 
-// parseInt 解析整数
+// parseInt 解析整数 - 使用标准库strconv.Atoi提供更好的性能和错误处理
 func parseInt(s string) (int, error) {
-	var i int
-	_, err := fmt.Sscanf(s, "%d", &i)
-	return i, err
+	return strconv.Atoi(s)
 }
 
 // GetString 获取字符串配置
@@ -283,4 +279,11 @@ func (m *Manager) GetAuthConfig() *model.AuthConfig {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	return &m.config.Auth
+}
+
+// UpdateLogger 更新logger实例（避免重复创建配置管理器）
+func (m *Manager) UpdateLogger(newLogger *zap.Logger) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.logger = newLogger
 }

@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListCronJobs 采集 CronJob 信息，支持命名空间过滤
 func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.CronJobStatus, error) {
 	cronjobs, err := clientset.BatchV1().CronJobs(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -18,13 +17,12 @@ func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespac
 	result := make([]model.CronJobStatus, 0, len(cronjobs.Items))
 	for _, cj := range cronjobs.Items {
 		status := GetCronJobStatus(len(cj.Status.Active), cj.Status.LastSuccessfulTime)
-		
-		// 处理时间字段
+
 		lastScheduleTime := ""
 		if cj.Status.LastScheduleTime != nil {
 			lastScheduleTime = cj.Status.LastScheduleTime.Format("2006-01-02 15:04:05")
 		}
-		
+
 		result = append(result, model.CronJobStatus{
 			Namespace:        cj.Namespace,
 			Name:             cj.Name,

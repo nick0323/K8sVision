@@ -10,22 +10,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListPVCs 获取 PVC 列表
 func ListPVCs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.PVCStatus, error) {
-	var pvcList *v1.PersistentVolumeClaimList
-	var err error
-
-	if namespace == "" {
-		pvcList, err = clientset.CoreV1().PersistentVolumeClaims("").List(ctx, metav1.ListOptions{})
-	} else {
-		pvcList, err = clientset.CoreV1().PersistentVolumeClaims(namespace).List(ctx, metav1.ListOptions{})
-	}
-
+	pvcList, err := ListResourcesWithNamespace(ctx, namespace,
+		func() (*v1.PersistentVolumeClaimList, error) {
+			return clientset.CoreV1().PersistentVolumeClaims("").List(ctx, metav1.ListOptions{})
+		},
+		func(ns string) (*v1.PersistentVolumeClaimList, error) {
+			return clientset.CoreV1().PersistentVolumeClaims(ns).List(ctx, metav1.ListOptions{})
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	var pvcStatuses []model.PVCStatus
+	pvcStatuses := make([]model.PVCStatus, 0, len(pvcList.Items))
 	for _, pvc := range pvcList.Items {
 		status := "Pending"
 		if pvc.Status.Phase == v1.ClaimBound {

@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ListEvents 采集指定 context 下的 Event 信息，返回 EventStatus 列表
 func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.EventStatus, error) {
 	events, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {

@@ -2,48 +2,28 @@ package middleware
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
 )
 
-var configManager *config.Manager
-
-// SetConfigManager 设置配置管理器
-func SetConfigManager(cm *config.Manager) {
-	configManager = cm
+type ConfigProvider interface {
+	GetJWTSecret() []byte
 }
 
-// InitJWTSecret 初始化 JWT 密钥（保持向后兼容）
-func InitJWTSecret(secret string) {
-	// 这个函数现在只是占位符，实际的密钥管理通过配置管理器
-	_ = secret
-}
-
-// getJWTSecret 获取JWT密钥
-func getJWTSecret() []byte {
-	// 优先从配置管理器获取密钥
-	if configManager != nil {
-		return configManager.GetJWTSecret()
+func getJWTSecret(provider ConfigProvider) []byte {
+	if provider == nil {
+		panic("配置提供者未初始化")
 	}
-
-	// 兼容旧版本，从环境变量获取密钥
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "k8svision-secret-key"
-	}
-	return []byte(secret)
+	return provider.GetJWTSecret()
 }
 
-// JWTAuthMiddleware JWT认证中间件
-func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
+func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		traceId := getTraceID(c)
+		traceId := c.GetString("traceId")
 
 		logger.Debug("JWT认证开始",
 			zap.String("traceId", traceId),
@@ -52,7 +32,6 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.String("method", c.Request.Method),
 		)
 
-		// 获取Authorization头
 		tokenStr := c.GetHeader("Authorization")
 		if tokenStr == "" {
 			logger.Warn("missing authorization header",
@@ -74,7 +53,6 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.String("header", tokenStr[:min(len(tokenStr), 20)]+"..."),
 		)
 
-		// 检查Bearer前缀
 		if !strings.HasPrefix(tokenStr, "Bearer ") {
 			logger.Warn("invalid authorization format",
 				zap.String("traceId", traceId),
@@ -90,7 +68,6 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 提取token
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
 
 		logger.Debug("Parsing JWT token",
@@ -99,7 +76,6 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.Int("tokenLength", len(tokenStr)),
 		)
 
-		// 检查token格式
 		segments := strings.Split(tokenStr, ".")
 		if len(segments) != 3 {
 			logger.Warn("invalid token format - wrong number of segments",
@@ -117,13 +93,11 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 解析JWT token
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			// 验证签名方法
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return getJWTSecret(), nil
+			return getJWTSecret(configProvider), nil
 		})
 
 		if err != nil {
@@ -141,7 +115,6 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 验证token有效性
 		if !token.Valid {
 			logger.Warn("invalid jwt token",
 				zap.String("traceId", traceId),
@@ -156,7 +129,6 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 提取用户信息
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			if username, exists := claims["username"].(string); exists {
 				c.Set("username", username)
@@ -175,34 +147,4 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 
 		c.Next()
 	}
-}
-
-// RequirePermission 权限检查中间件
-func RequirePermission(permission string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// 这里可以实现具体的权限检查逻辑
-		// 目前只是占位符，可以根据实际需求扩展
-		username, exists := c.Get("username")
-		if !exists {
-			c.AbortWithStatus(401)
-			return
-		}
-
-		// 简单的权限检查示例
-		// 在实际应用中，这里应该查询数据库或缓存来验证用户权限
-		if permission != "" {
-			// 这里可以添加具体的权限验证逻辑
-			_ = username // 避免未使用变量警告
-		}
-
-		c.Next()
-	}
-}
-
-// min 返回两个整数中的较小值
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

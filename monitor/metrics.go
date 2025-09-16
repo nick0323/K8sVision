@@ -10,10 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// 全局监控器实例
 var globalMonitor *Monitor
 
-// Metrics 性能指标
 type Metrics struct {
 	// 请求统计
 	TotalRequests      int64 `json:"totalRequests"`
@@ -42,29 +40,22 @@ type Metrics struct {
 	StartTime time.Time     `json:"startTime"`
 	Uptime    time.Duration `json:"uptime"`
 
-	// 新增：K8s API调用统计
 	K8sAPICalls    int64         `json:"k8sApiCalls"`
 	K8sAPIDuration time.Duration `json:"k8sApiDuration"`
 	K8sAPIErrors   int64         `json:"k8sApiErrors"`
 
-	// 新增：资源统计
 	ResourceCounts map[string]int64 `json:"resourceCounts"`
 
-	// 新增：内存使用统计
 	MemoryUsage     int64 `json:"memoryUsage"`
 	MemoryAllocated int64 `json:"memoryAllocated"`
 
-	// 新增：Goroutine统计
-	GoroutineCount int64 `json:"goroutineCount"`
-
-	// 内部字段
+	GoroutineCount    int64 `json:"goroutineCount"`
 	mutex             sync.RWMutex
 	totalResponseTime time.Duration
 	requestCount      int64
 	logger            *zap.Logger
 }
 
-// NewMetrics 创建新的性能指标收集器
 func NewMetrics(logger *zap.Logger) *Metrics {
 	return &Metrics{
 		StartTime:      time.Now(),

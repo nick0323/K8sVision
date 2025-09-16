@@ -27,13 +27,6 @@ func RegisterMetrics(r *gin.RouterGroup, logger *zap.Logger) {
 }
 
 // getMetrics 获取所有指标
-// @Summary 获取系统指标
-// @Description 获取系统性能指标和业务指标
-// @Tags Metrics
-// @Security BearerAuth
-// @Produce json
-// @Success 200 {object} MetricsResponse
-// @Router /metrics [get]
 func getMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 获取系统指标
@@ -62,13 +55,6 @@ func getMetrics(logger *zap.Logger) gin.HandlerFunc {
 }
 
 // getBusinessMetrics 获取业务指标
-// @Summary 获取业务指标
-// @Description 获取K8s资源和API相关的业务指标
-// @Tags Metrics
-// @Security BearerAuth
-// @Produce json
-// @Success 200 {object} model.APIResponse
-// @Router /metrics/business [get]
 func getBusinessMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		collector := monitor.GetBusinessMetricsCollector()
@@ -85,13 +71,6 @@ func getBusinessMetrics(logger *zap.Logger) gin.HandlerFunc {
 }
 
 // getSystemMetrics 获取系统指标
-// @Summary 获取系统指标
-// @Description 获取系统性能指标，包括CPU、内存、网络等
-// @Tags Metrics
-// @Security BearerAuth
-// @Produce json
-// @Success 200 {object} model.APIResponse
-// @Router /metrics/system [get]
 func getSystemMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		metricsManager := monitor.GetMetricsManager()
@@ -110,12 +89,6 @@ func getSystemMetrics(logger *zap.Logger) gin.HandlerFunc {
 }
 
 // getHealthMetrics 获取健康指标
-// @Summary 获取健康指标
-// @Description 获取系统健康状态和关键指标
-// @Tags Metrics
-// @Produce json
-// @Success 200 {object} model.APIResponse
-// @Router /metrics/health [get]
 func getHealthMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		metricsManager := monitor.GetMetricsManager()
@@ -153,44 +126,102 @@ func getHealthMetrics(logger *zap.Logger) gin.HandlerFunc {
 
 // calculateSystemHealth 计算系统健康状态
 func calculateSystemHealth(metrics map[string]interface{}) map[string]interface{} {
-	// 这里应该根据实际指标计算健康状态
-	// 目前返回模拟数据
-	healthScore := 95.0
-	status := "healthy"
+	healthScore := 100.0
+	checks := make(map[string]interface{})
 
-	// 检查关键指标
-	if healthScore < 50 {
-		status = "unhealthy"
-	} else if healthScore < 80 {
+	// 检查系统指标是否可用
+	if len(metrics) == 0 {
+		healthScore -= 30
+		checks["metrics"] = "unavailable"
+	} else {
+		checks["metrics"] = "ok"
+	}
+
+	// 检查监控系统
+	if monitor.GetMetricsManager() != nil {
+		checks["monitoring"] = "ok"
+	} else {
+		healthScore -= 20
+		checks["monitoring"] = "degraded"
+	}
+
+	// 检查业务指标收集器
+	if monitor.GetBusinessMetricsCollector() != nil {
+		checks["business_metrics"] = "ok"
+	} else {
+		healthScore -= 15
+		checks["business_metrics"] = "degraded"
+	}
+
+	// 确定整体状态
+	var status string
+	if healthScore >= 90 {
+		status = "healthy"
+	} else if healthScore >= 70 {
 		status = "degraded"
+	} else {
+		status = "unhealthy"
 	}
 
 	return map[string]interface{}{
 		"status": status,
 		"score":  healthScore,
-		"checks": map[string]interface{}{
-			"cpu":     "ok",
-			"memory":  "ok",
-			"disk":    "ok",
-			"network": "ok",
-		},
+		"checks": checks,
 	}
 }
 
 // extractKeyMetrics 提取关键指标
 func extractKeyMetrics(metrics map[string]interface{}) map[string]interface{} {
-	// 这里应该从实际指标中提取关键信息
-	// 目前返回模拟数据
-	return map[string]interface{}{
-		"cpu_usage":    25.5,
-		"memory_usage": 1024 * 1024 * 100, // 100MB
-		"disk_usage":   45.2,
-		"network_io": map[string]float64{
-			"in":  1024 * 1024, // 1MB/s
-			"out": 512 * 1024,  // 512KB/s
-		},
-		"active_connections": 150,
-		"request_rate":       100.5, // requests/second
-	}
-}
+	keyMetrics := make(map[string]interface{})
 
+	// 从实际指标中提取关键信息
+	if len(metrics) > 0 {
+		// 尝试提取CPU相关指标
+		if cpu, exists := metrics["cpu"]; exists {
+			keyMetrics["cpu_usage"] = cpu
+		} else {
+			keyMetrics["cpu_usage"] = "N/A"
+		}
+
+		// 尝试提取内存相关指标
+		if memory, exists := metrics["memory"]; exists {
+			keyMetrics["memory_usage"] = memory
+		} else {
+			keyMetrics["memory_usage"] = "N/A"
+		}
+
+		// 尝试提取网络相关指标
+		if network, exists := metrics["network"]; exists {
+			keyMetrics["network_io"] = network
+		} else {
+			keyMetrics["network_io"] = map[string]string{
+				"in":  "N/A",
+				"out": "N/A",
+			}
+		}
+
+		// 尝试提取连接数指标
+		if connections, exists := metrics["connections"]; exists {
+			keyMetrics["active_connections"] = connections
+		} else {
+			keyMetrics["active_connections"] = "N/A"
+		}
+
+		// 添加指标收集时间
+		keyMetrics["collected_at"] = time.Now().Unix()
+		keyMetrics["metrics_count"] = len(metrics)
+	} else {
+		// 没有指标数据时的默认值
+		keyMetrics = map[string]interface{}{
+			"cpu_usage":          "N/A",
+			"memory_usage":       "N/A",
+			"network_io":         map[string]string{"in": "N/A", "out": "N/A"},
+			"active_connections": "N/A",
+			"collected_at":       time.Now().Unix(),
+			"metrics_count":      0,
+			"status":             "no_data",
+		}
+	}
+
+	return keyMetrics
+}

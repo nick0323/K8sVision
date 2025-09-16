@@ -9,14 +9,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// CacheItem 缓存项
 type CacheItem struct {
 	Value      interface{}
 	ExpireTime time.Time
 	CreatedAt  time.Time
 }
 
-// MemoryCache 内存缓存
 type MemoryCache struct {
 	data            map[string]CacheItem
 	mutex           sync.RWMutex
@@ -196,7 +194,7 @@ func (c *MemoryCache) cleanupWorker() {
 }
 
 // cleanup 清理过期项
-func (c *MemoryCache) cleanup() {
+func (c *MemoryCache) cleanup() int {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -216,6 +214,13 @@ func (c *MemoryCache) cleanup() {
 			c.logger.Info("缓存清理完成", zap.Int("expiredCount", expiredCount))
 		}
 	}
+
+	return expiredCount
+}
+
+// ClearExpired 手动清理过期项并返回清理数量
+func (c *MemoryCache) ClearExpired() int {
+	return c.cleanup()
 }
 
 // Close 关闭缓存
