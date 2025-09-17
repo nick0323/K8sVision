@@ -21,16 +21,24 @@ func getJWTSecret(provider ConfigProvider) []byte {
 	return provider.GetJWTSecret()
 }
 
+// safeStringClaim 安全地从JWT claims中获取字符串值
+func safeStringClaim(claims jwt.MapClaims, key string) (string, bool) {
+	if claims == nil {
+		return "", false
+	}
+
+	value, exists := claims[key]
+	if !exists {
+		return "", false
+	}
+
+	str, ok := value.(string)
+	return str, ok
+}
+
 func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		traceId := c.GetString("traceId")
-
-		logger.Debug("JWT认证开始",
-			zap.String("traceId", traceId),
-			zap.String("clientIP", c.ClientIP()),
-			zap.String("path", c.Request.URL.Path),
-			zap.String("method", c.Request.Method),
-		)
 
 		tokenStr := c.GetHeader("Authorization")
 		if tokenStr == "" {
@@ -48,11 +56,6 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			return
 		}
 
-		logger.Debug("Authorization header found",
-			zap.String("traceId", traceId),
-			zap.String("header", tokenStr[:min(len(tokenStr), 20)]+"..."),
-		)
-
 		if !strings.HasPrefix(tokenStr, "Bearer ") {
 			logger.Warn("invalid authorization format",
 				zap.String("traceId", traceId),
@@ -69,12 +72,6 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 		}
 
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-
-		logger.Debug("Parsing JWT token",
-			zap.String("traceId", traceId),
-			zap.String("token", tokenStr[:min(len(tokenStr), 20)]+"..."),
-			zap.Int("tokenLength", len(tokenStr)),
-		)
 
 		segments := strings.Split(tokenStr, ".")
 		if len(segments) != 3 {
@@ -129,14 +126,82 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			if username, exists := claims["username"].(string); exists {
-				c.Set("username", username)
-				logger.Debug("User authenticated",
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && claims != nil {
+			// 添加额外的安全检查
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Error("JWT claims processing panic recovered",
+						zap.String("traceId", traceId),
+						zap.String("clientIP", c.ClientIP()),
+					)
+					ResponseError(c, logger, &model.APIError{
+						Code:    model.CodeAuthError,
+						Message: model.GetErrorMessage(model.CodeAuthError),
+						Details: "Token处理失败",
+					}, 401)
+					c.Abort()
+				}
+			}()
+			// 验证必要字段
+			username, usernameExists := safeStringClaim(claims, "username")
+
+			if !usernameExists || username == "" {
+				logger.Warn("JWT token missing username",
 					zap.String("traceId", traceId),
-					zap.String("username", username),
+					zap.String("clientIP", c.ClientIP()),
 				)
+				ResponseError(c, logger, &model.APIError{
+					Code:    model.CodeAuthError,
+					Message: model.GetErrorMessage(model.CodeAuthError),
+					Details: "Token缺少用户名信息",
+				}, 401)
+				c.Abort()
+				return
 			}
+
+			// 安全地获取可选字段
+			iss, issExists := safeStringClaim(claims, "iss")
+			aud, audExists := safeStringClaim(claims, "aud")
+			jti, jtiExists := safeStringClaim(claims, "jti")
+
+			// 验证签发者和受众（如果存在）
+			if issExists && iss != "k8svision" {
+				logger.Warn("JWT token invalid issuer",
+					zap.String("traceId", traceId),
+					zap.String("clientIP", c.ClientIP()),
+					zap.String("issuer", iss),
+				)
+				ResponseError(c, logger, &model.APIError{
+					Code:    model.CodeAuthError,
+					Message: model.GetErrorMessage(model.CodeAuthError),
+					Details: "Token签发者无效",
+				}, 401)
+				c.Abort()
+				return
+			}
+
+			if audExists && aud != "k8svision-client" {
+				logger.Warn("JWT token invalid audience",
+					zap.String("traceId", traceId),
+					zap.String("clientIP", c.ClientIP()),
+					zap.String("audience", aud),
+				)
+				ResponseError(c, logger, &model.APIError{
+					Code:    model.CodeAuthError,
+					Message: model.GetErrorMessage(model.CodeAuthError),
+					Details: "Token受众无效",
+				}, 401)
+				c.Abort()
+				return
+			}
+
+			c.Set("username", username)
+
+			// 安全地设置JTI（如果存在）
+			if jtiExists && jti != "" {
+				c.Set("jti", jti) // 保存JTI用于撤销
+			}
+
 		}
 
 		logger.Info("authentication successful",

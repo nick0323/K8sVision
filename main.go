@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -67,6 +68,10 @@ func initLogger(cfg *model.Config) (*zap.Logger, error) {
 	} else {
 		zapConfig.Encoding = JSONFormat
 	}
+
+	// 配置时间戳格式为可读格式
+	zapConfig.EncoderConfig.TimeKey = "timestamp"
+	zapConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000")
 
 	return zapConfig.Build()
 }
@@ -181,6 +186,7 @@ func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 
 	api.RegisterPasswordAdmin(apiGroup, app.logger)
 	api.RegisterMetrics(apiGroup, app.logger)
+
 }
 
 func (app *Application) getOverviewHandler() func(limit, offset int) (*model.OverviewStatus, string, error) {

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,19 +11,22 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/nick0323/K8sVision/api/middleware"
-	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
 )
 
 var (
-	configManager *config.Manager
-	authManager   *AuthManager
+	authManager *AuthManager
 )
 
-func SetConfigManager(cm *config.Manager) {
-	configManager = cm
-	fmt.Printf("DEBUG: SetConfigManager called, configManager is nil: %v\n", configManager == nil)
+// generateJTI 生成JWT ID
+func generateJTI() string {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		// 如果随机数生成失败，使用时间戳作为备选
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return base64.URLEncoding.EncodeToString(bytes)
 }
 
 func InitAuthManager(logger *zap.Logger) {
@@ -46,11 +51,35 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
+		// 输入验证和清理
+		req.Username = strings.TrimSpace(req.Username)
+		req.Password = strings.TrimSpace(req.Password)
+
 		if req.Username == "" || req.Password == "" {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeMissingParameter,
 				Message: model.GetErrorMessage(model.CodeMissingParameter),
 				Details: "用户名和密码不能为空",
+			}, http.StatusBadRequest)
+			return
+		}
+
+		// 检查用户名长度
+		if len(req.Username) > 50 {
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeValidationFailed,
+				Message: "用户名长度不能超过50个字符",
+				Details: "请使用较短的用户名",
+			}, http.StatusBadRequest)
+			return
+		}
+
+		// 检查密码长度
+		if len(req.Password) > 128 {
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeValidationFailed,
+				Message: "密码长度不能超过128个字符",
+				Details: "请使用较短的密码",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -88,7 +117,9 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		usernameMatch := req.Username == configUsername
 		passwordMatch := false
 
-		if strings.Contains(password, ":") {
+		// 密码验证（移除调试日志与敏感输出）
+
+		if isHashedPassword(password) {
 			pm := NewPasswordManager()
 			passwordMatch = pm.VerifyPassword(req.Password, password)
 		} else {
@@ -96,16 +127,23 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		if usernameMatch && passwordMatch {
-			logger.Info("用户登录成功，生成JWT token",
+			logger.Info("用户登录成功",
 				zap.String("username", req.Username),
 				zap.String("clientIP", c.ClientIP()),
+				zap.String("userAgent", c.GetHeader("User-Agent")),
+				zap.String("event", "login_success"),
 			)
 
 			secret := configManager.GetJWTSecret()
+			authConfig := configManager.GetAuthConfig()
 
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"username": req.Username,
-				"exp":      time.Now().Add(24 * time.Hour).Unix(),
+				"iat":      time.Now().Unix(),                                // 签发时间
+				"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(), // 从配置读取过期时间
+				"iss":      "k8svision",                                      // 签发者
+				"aud":      "k8svision-client",                               // 受众
+				"jti":      generateJTI(),                                    // JWT ID，用于撤销
 			})
 			tokenString, err := token.SignedString(secret)
 			if err != nil {
@@ -123,12 +161,6 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 
 			logger.Info("JWT token生成成功",
 				zap.String("username", req.Username),
-				zap.String("token", func() string {
-					if len(tokenString) > 20 {
-						return tokenString[:20] + "..."
-					}
-					return tokenString
-				}()),
 			)
 
 			if authManager != nil {
@@ -149,6 +181,16 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		if authManager != nil {
 			remainingAttempts = authManager.GetRemainingAttempts(username, clientIP)
 		}
+
+		// 记录登录失败审计日志
+		logger.Warn("用户登录失败",
+			zap.String("username", req.Username),
+			zap.String("clientIP", c.ClientIP()),
+			zap.String("userAgent", c.GetHeader("User-Agent")),
+			zap.String("event", "login_failed"),
+			zap.Int("remainingAttempts", remainingAttempts),
+			zap.Bool("usernameMatch", usernameMatch),
+		)
 
 		middleware.ResponseError(c, logger, &model.APIError{
 			Code:    model.CodeAuthError,

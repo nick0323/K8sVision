@@ -38,7 +38,7 @@ func getStatefulSetList(
 				return nil, err
 			}
 			return listStatefulSets(ctx, clientset, params.Namespace)
-		}, ListSuccessMessage) // 使用常量替代硬编码
+		}, ListSuccessMessage)
 	}
 }
 

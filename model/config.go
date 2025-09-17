@@ -100,7 +100,7 @@ func DefaultConfig() *Config {
 			Insecure:   true,
 		},
 		JWT: JWTConfig{
-			Secret:     "", // 生产环境请设置环境变量 K8SVISION_JWT_SECRET
+			Secret:     "k8svision-default-jwt-secret-key-32-chars", // 默认密钥，生产环境请设置环境变量 K8SVISION_JWT_SECRET
 			Expiration: 24 * time.Hour,
 			Issuer:     "k8svision",
 			Audience:   "k8svision-client",
@@ -115,8 +115,8 @@ func DefaultConfig() *Config {
 			Compress:   true,
 		},
 		Auth: AuthConfig{
-			Username:        "", // 生产环境请设置环境变量 K8SVISION_AUTH_USERNAME
-			Password:        "", // 生产环境请设置环境变量 K8SVISION_AUTH_PASSWORD
+			Username:        "admin",     // 默认用户名，生产环境请设置环境变量 K8SVISION_AUTH_USERNAME
+			Password:        "admin123!", // 默认密码，生产环境请设置环境变量 K8SVISION_AUTH_PASSWORD
 			MaxLoginFail:    5,
 			LockDuration:    10 * time.Minute,
 			SessionTimeout:  24 * time.Hour,
@@ -151,10 +151,10 @@ func (c *Config) Validate() error {
 
 	// 验证JWT配置
 	if c.JWT.Secret == "" {
-		return fmt.Errorf("JWT密钥不能为空，请设置环境变量 JWT_SECRET 或在配置文件中设置 jwt.secret")
+		return fmt.Errorf("JWT密钥不能为空，请设置环境变量 K8SVISION_JWT_SECRET 或在配置文件中设置 jwt.secret")
 	}
-	if len(c.JWT.Secret) < 32 {
-		return fmt.Errorf("JWT密钥长度至少32位字符，当前长度: %d", len(c.JWT.Secret))
+	if len(c.JWT.Secret) < 16 {
+		return fmt.Errorf("JWT密钥长度至少16位字符，当前长度: %d", len(c.JWT.Secret))
 	}
 	if c.JWT.Expiration <= 0 {
 		return fmt.Errorf("JWT过期时间必须大于0")

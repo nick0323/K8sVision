@@ -29,13 +29,19 @@ func getNamespaceList(
 	listNamespaces func(context.Context, *kubernetes.Clientset) ([]model.NamespaceDetail, error),
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		HandleListWithPagination(c, logger, func(ctx context.Context, params PaginationParams) ([]model.NamespaceDetail, error) {
-			clientset, _, err := getK8sClient()
-			if err != nil {
-				return nil, err
-			}
-			return listNamespaces(ctx, clientset)
-		}, ListSuccessMessage)
+		// 命名空间用于下拉选择，返回全集更符合预期（不做分页）
+		clientset, _, err := getK8sClient()
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+		ctx := GetRequestContext(c)
+		ns, err := listNamespaces(ctx, clientset)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+		middleware.ResponseSuccess(c, ns, ListSuccessMessage, nil)
 	}
 }
 

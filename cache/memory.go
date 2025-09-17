@@ -70,10 +70,7 @@ func (c *MemoryCache) SetWithTTL(key string, value interface{}, ttl time.Duratio
 		CreatedAt:  now,
 	}
 
-	// 安全检查logger
-	if c.logger != nil {
-		c.logger.Debug("缓存设置", zap.String("key", key), zap.Duration("ttl", ttl))
-	}
+	// 生产环境不记录Debug级缓存设置日志
 }
 
 // Get 获取缓存
@@ -93,10 +90,7 @@ func (c *MemoryCache) Get(key string) (interface{}, bool) {
 		return nil, false
 	}
 
-	// 安全检查logger
-	if c.logger != nil {
-		c.logger.Debug("缓存命中", zap.String("key", key))
-	}
+	// 生产环境不记录Debug级缓存命中日志
 	return item.Value, true
 }
 
@@ -107,10 +101,7 @@ func (c *MemoryCache) Delete(key string) {
 
 	delete(c.data, key)
 
-	// 安全检查logger
-	if c.logger != nil {
-		c.logger.Debug("缓存删除", zap.String("key", key))
-	}
+	// 生产环境不记录Debug级缓存删除日志
 }
 
 // delete 内部删除方法（无锁）
@@ -171,10 +162,7 @@ func (c *MemoryCache) evictOldest() {
 	if oldestKey != "" {
 		delete(c.data, oldestKey)
 
-		// 安全检查logger
-		if c.logger != nil {
-			c.logger.Debug("缓存淘汰", zap.String("key", oldestKey))
-		}
+		// 生产环境不记录Debug级缓存淘汰日志
 	}
 }
 

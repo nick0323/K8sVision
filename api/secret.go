@@ -37,7 +37,7 @@ func getSecretList(
 				return nil, err
 			}
 			return listSecrets(ctx, clientset, params.Namespace)
-		}, ListSuccessMessage) // 使用常量替代硬编码
+		}, ListSuccessMessage)
 	}
 }
 

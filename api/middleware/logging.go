@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -67,16 +69,11 @@ func TraceMiddleware() gin.HandlerFunc {
 }
 
 // generateTraceID 生成追踪ID
+// 格式: YYYYMMDDHHMMSS-XXXXXXXX (时间戳-8位随机十六进制)
 func generateTraceID() string {
-	return time.Now().Format("20060102150405") + "-" + randomString(8)
-}
-
-// randomString 生成随机字符串
-func randomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
-	}
-	return string(b)
+	timestamp := time.Now().Format("20060102150405")
+	randomBytes := make([]byte, 4)
+	rand.Read(randomBytes)
+	randomHex := hex.EncodeToString(randomBytes)
+	return timestamp + "-" + randomHex
 }

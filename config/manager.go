@@ -101,6 +101,9 @@ func (m *Manager) Watch() error {
 	}
 
 	go func() {
+		// 简单去抖，避免同一次保存触发多次重载
+		var lastReload time.Time
+		const debounce = 500 * time.Millisecond
 		for {
 			select {
 			case event, ok := <-watcher.Events:
@@ -109,6 +112,11 @@ func (m *Manager) Watch() error {
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					if filepath.Base(event.Name) == filepath.Base(m.configFile) {
+						if time.Since(lastReload) < debounce {
+							// 忽略短时间内的重复事件
+							continue
+						}
+						lastReload = time.Now()
 						m.logger.Info("检测到配置文件变化，重新加载配置", zap.String("file", event.Name))
 						if err := m.reload(); err != nil {
 							m.logger.Error("重新加载配置失败", zap.Error(err))
@@ -192,7 +200,7 @@ func (m *Manager) applyEnvironmentOverrides() {
 	}
 
 	// JWT配置
-	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+	if secret := os.Getenv("K8SVISION_JWT_SECRET"); secret != "" {
 		m.config.JWT.Secret = secret
 	}
 
@@ -202,18 +210,18 @@ func (m *Manager) applyEnvironmentOverrides() {
 	}
 
 	// 认证配置
-	if username := os.Getenv("LOGIN_USERNAME"); username != "" {
+	if username := os.Getenv("K8SVISION_AUTH_USERNAME"); username != "" {
 		m.config.Auth.Username = username
 	}
-	if password := os.Getenv("LOGIN_PASSWORD"); password != "" {
+	if password := os.Getenv("K8SVISION_AUTH_PASSWORD"); password != "" {
 		m.config.Auth.Password = password
 	}
-	if maxFail := os.Getenv("LOGIN_MAX_FAIL"); maxFail != "" {
+	if maxFail := os.Getenv("K8SVISION_AUTH_MAX_FAIL"); maxFail != "" {
 		if val, err := parseInt(maxFail); err == nil {
 			m.config.Auth.MaxLoginFail = val
 		}
 	}
-	if lockMinutes := os.Getenv("LOGIN_LOCK_MINUTES"); lockMinutes != "" {
+	if lockMinutes := os.Getenv("K8SVISION_AUTH_LOCK_MINUTES"); lockMinutes != "" {
 		if val, err := parseInt(lockMinutes); err == nil {
 			m.config.Auth.LockDuration = time.Duration(val) * time.Minute
 		}
@@ -265,6 +273,42 @@ func (m *Manager) WriteConfig() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	return m.viper.WriteConfig()
+}
+
+// WriteConfigWithBackup 写入配置文件并在覆盖前创建备份
+func (m *Manager) WriteConfigWithBackup() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	cfgPath := m.viper.ConfigFileUsed()
+	if cfgPath == "" {
+		cfgPath = m.configFile
+	}
+	if cfgPath != "" {
+		// 创建简单备份
+		if data, err := os.ReadFile(cfgPath); err == nil {
+			_ = os.WriteFile(cfgPath+".bak", data, 0600)
+		}
+	}
+	return m.viper.WriteConfig()
+}
+
+// SetAndWrite 原子更新：先设置键值，再写入配置（带备份）
+func (m *Manager) SetAndWrite(key string, value interface{}) error {
+	m.mutex.Lock()
+	m.viper.Set(key, value)
+	m.mutex.Unlock()
+	return m.WriteConfigWithBackup()
+}
+
+// GetConfigFile 返回当前配置文件路径
+func (m *Manager) GetConfigFile() string {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	if m.configFile != "" {
+		return m.configFile
+	}
+	return m.viper.ConfigFileUsed()
 }
 
 // GetJWTSecret 获取JWT密钥

@@ -53,11 +53,6 @@ func (bmc *BusinessMetricsCollector) RecordMetric(metric BusinessMetric) {
 	key := bmc.generateKey(metric)
 	bmc.metrics[key] = &metric
 
-	bmc.logger.Debug("Recorded business metric",
-		zap.String("name", metric.Name),
-		zap.Float64("value", metric.Value),
-		zap.String("type", metric.MetricType),
-	)
 }
 
 // GetMetric 获取指标

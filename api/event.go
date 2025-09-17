@@ -45,7 +45,7 @@ func getEventList(
 			// 对原始数据进行排序（在搜索和分页之前）
 			sortEventsByLastSeen(events)
 			return events, nil
-		}, ListSuccessMessage) // 使用常量替代硬编码
+		}, ListSuccessMessage)
 	}
 }
 

@@ -111,35 +111,3 @@ func ConvertK8sError(k8sErr *errors.StatusError) *model.APIError {
 		},
 	}
 }
-
-func ValidationError(field, message string) *model.APIError {
-	return &model.APIError{
-		Code:    model.CodeValidationFailed,
-		Message: model.GetErrorMessage(model.CodeValidationFailed),
-		Details: map[string]string{
-			"field":   field,
-			"message": message,
-		},
-	}
-}
-
-func MissingParameterError(param string) *model.APIError {
-	return &model.APIError{
-		Code:    model.CodeMissingParameter,
-		Message: model.GetErrorMessage(model.CodeMissingParameter),
-		Details: map[string]string{
-			"parameter": param,
-		},
-	}
-}
-
-func InvalidParameterError(param, value string) *model.APIError {
-	return &model.APIError{
-		Code:    model.CodeInvalidParameter,
-		Message: model.GetErrorMessage(model.CodeInvalidParameter),
-		Details: map[string]string{
-			"parameter": param,
-			"value":     value,
-		},
-	}
-}

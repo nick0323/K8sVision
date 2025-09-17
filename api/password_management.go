@@ -104,6 +104,11 @@ func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, stri
 		return false, fmt.Sprintf("密码长度不能超过%d位", model.MaxPasswordLen)
 	}
 
+	// 检查常见弱密码
+	if pm.isWeakPassword(password) {
+		return false, "密码过于简单，请使用更复杂的密码"
+	}
+
 	hasUpper := false
 	hasLower := false
 	hasDigit := false
@@ -138,6 +143,70 @@ func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, stri
 	return true, "密码强度符合要求"
 }
 
+// isWeakPassword 检查是否为弱密码
+func (pm *PasswordManager) isWeakPassword(password string) bool {
+	weakPasswords := []string{
+		"123456", "password", "admin", "root", "user", "test",
+		"12345678", "qwerty", "abc123", "password123", "admin123",
+		"123456789", "1234567890", "letmein", "welcome", "monkey",
+		"dragon", "master", "hello", "login", "pass",
+		"1234", "12345", "1234567", "123456789", "1234567890",
+		"qwertyuiop", "asdfghjkl", "zxcvbnm", "password1",
+		"admin1234", "root123", "user123", "test123",
+	}
+
+	passwordLower := strings.ToLower(password)
+	for _, weak := range weakPasswords {
+		if passwordLower == weak || strings.Contains(passwordLower, weak) {
+			return true
+		}
+	}
+
+	// 检查连续数字
+	if pm.hasConsecutiveNumbers(password) {
+		return true
+	}
+
+	// 检查重复字符
+	if pm.hasRepeatedCharacters(password) {
+		return true
+	}
+
+	return false
+}
+
+// hasConsecutiveNumbers 检查是否有连续数字
+func (pm *PasswordManager) hasConsecutiveNumbers(password string) bool {
+	consecutiveCount := 0
+	for i := 0; i < len(password)-1; i++ {
+		if password[i] >= '0' && password[i] <= '9' {
+			if password[i+1] == password[i]+1 {
+				consecutiveCount++
+				if consecutiveCount >= 3 {
+					return true
+				}
+			} else {
+				consecutiveCount = 0
+			}
+		} else {
+			consecutiveCount = 0
+		}
+	}
+	return false
+}
+
+// hasRepeatedCharacters 检查是否有过多重复字符
+func (pm *PasswordManager) hasRepeatedCharacters(password string) bool {
+	charCount := make(map[rune]int)
+	for _, char := range password {
+		charCount[char]++
+		if charCount[char] > len(password)/2 {
+			return true
+		}
+	}
+	return false
+}
+
 var passwordManager = NewPasswordManager()
 
 func RegisterPasswordAdmin(r *gin.RouterGroup, logger *zap.Logger) {
@@ -170,12 +239,77 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 这里应该验证旧密码和更新新密码
-		// 具体实现取决于你的认证系统
+		// 验证旧密码
+		authConfig := configManager.GetAuthConfig()
+		oldPasswordMatch := false
+
+		if isHashedPassword(authConfig.Password) {
+			oldPasswordMatch = passwordManager.VerifyPassword(req.OldPassword, authConfig.Password)
+		} else {
+			oldPasswordMatch = req.OldPassword == authConfig.Password
+		}
+
+		if !oldPasswordMatch {
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeAuthError,
+				Message: "旧密码错误",
+				Details: "请提供正确的旧密码",
+			}, http.StatusBadRequest)
+			return
+		}
+
+		// 检查新密码是否与旧密码相同
+		if req.OldPassword == req.NewPassword {
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeValidationFailed,
+				Message: "新密码不能与旧密码相同",
+				Details: "请使用不同的新密码",
+			}, http.StatusBadRequest)
+			return
+		}
+
+		// 生成新密码的哈希值
+		newHashedPassword, err := passwordManager.HashPassword(req.NewPassword)
+		if err != nil {
+			logger.Error("密码哈希失败", zap.Error(err))
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeInternalServerError,
+				Message: "密码处理失败",
+				Details: "无法生成密码哈希",
+			}, http.StatusInternalServerError)
+			return
+		}
+
+		// 持久化更新配置中的密码
+		if configManager == nil {
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeInternalServerError,
+				Message: "系统配置未初始化",
+			}, http.StatusInternalServerError)
+			return
+		}
+
+		// 更新 viper 中的配置并写回文件
+		configManager.Set("auth.password", newHashedPassword)
+		if err := configManager.WriteConfig(); err != nil {
+			logger.Error("写入配置文件失败", zap.Error(err))
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeInternalServerError,
+				Message: "配置持久化失败",
+			}, http.StatusInternalServerError)
+			return
+		}
+
+		// 记录审计日志（不暴露敏感信息）
+		username := c.GetString("username")
+		if username == "" {
+			username = "admin"
+		}
+		logger.Info("密码修改成功", zap.String("username", username))
 
 		middleware.ResponseSuccess(c, gin.H{
 			"message": "密码修改成功",
-		}, "success", nil)
+		}, "密码修改成功", nil)
 	}
 }
 
@@ -201,8 +335,8 @@ func generatePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
+		// 默认不返回明文密码，仅返回长度与哈希；如需明文可通过前端受控开关另行支持
 		middleware.ResponseSuccess(c, gin.H{
-			"password":       password,
 			"hashedPassword": hashedPassword,
 			"length":         len(password),
 		}, "密码生成成功", nil)

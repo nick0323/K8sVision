@@ -279,14 +279,12 @@ func (m *Manager) ClearExpired() {
 	defer m.mutex.RUnlock()
 
 	var totalCleaned int
-	for name, cache := range m.caches {
+	for _, cache := range m.caches {
 		// 对于MemoryCache，我们可以手动触发清理
 		if memCache, ok := cache.(*MemoryCache); ok {
 			cleaned := memCache.ClearExpired()
 			totalCleaned += cleaned
-			m.logger.Debug("手动清理过期缓存项",
-				zap.String("cache", name),
-				zap.Int("cleaned", cleaned))
+			// 移除Debug日志，避免噪声
 		}
 	}
 

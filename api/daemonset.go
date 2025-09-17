@@ -37,7 +37,7 @@ func getDaemonSetList(
 				return nil, err
 			}
 			return listDaemonSets(ctx, clientset, params.Namespace)
-		}, ListSuccessMessage) // 使用常量替代硬编码
+		}, ListSuccessMessage)
 	}
 }
 

@@ -149,7 +149,11 @@ func GetK8sClient() (*kubernetes.Clientset, *metrics.Clientset, error) {
 func generateK8sClientCacheKey(config *rest.Config) string {
 	tokenSuffix := ""
 	if len(config.BearerToken) > 0 {
-		tokenSuffix = config.BearerToken[:min(len(config.BearerToken), 10)]
+		n := len(config.BearerToken)
+		if n > 10 {
+			n = 10
+		}
+		tokenSuffix = config.BearerToken[:n]
 	}
 
 	key := fmt.Sprintf("%s%s_%s_%v_%v",
